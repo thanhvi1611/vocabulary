@@ -348,6 +348,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- 5. QUẢN LÝ BÀI HỌC THEO NGÀY ---
+ // --- 5. QUẢN LÝ BÀI HỌC THEO NGÀY ---
   function renderDayList() {
     const list = getStoredVocab();
     dayListContainer.innerHTML = '';
@@ -373,8 +374,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return `
           <div style="border-bottom:1px dashed #eee; padding:8px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
             <div>
-              <strong style="color:#1a73e8;">${item.word}</strong>
-              ${item.phonetic ? `<span style="color:#666; font-size:12px;">${item.phonetic}</span>` : ''}
+              <strong style="color:#1a73e8; font-size: 15px;">${item.word}</strong>
+              <button class="btn-speak-item" data-word="${item.word}" style="background:none; border:none; cursor:pointer; font-size:16px; margin-left:4px;" title="Phát âm">🔊</button>
+              ${item.phonetic ? `<span style="color:#666; font-size:12px; margin-left:4px;">${item.phonetic}</span>` : ''}
               <span style="color:#333; margin-left:8px;">👉 ${item.meaning}</span>
             </div>
             <div>
@@ -397,6 +399,14 @@ document.addEventListener('DOMContentLoaded', () => {
         <div>${wordsHTML}</div>
       `;
       dayListContainer.appendChild(card);
+    });
+
+    // Sự kiện phát âm cho từng từ riêng lẻ trong danh sách
+    document.querySelectorAll('.btn-speak-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const word = e.target.getAttribute('data-word');
+        speakWord(word);
+      });
     });
 
     // Event Handlers cho danh sách bài học
