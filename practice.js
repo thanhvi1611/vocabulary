@@ -204,6 +204,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const word = inputWord.value.trim();
     const meaning = inputMeaning.value.trim();
     const phonetic = inputPhonetic.value.trim();
+const todayObj = new Date();
+const todayStr = todayObj.toISOString().split('T')[0];
+
+vocabList.unshift({
+  word,
+  meaning,
+  phonetic,
+  date: todayStr,
+  // --- THUỘC TÍNH SRS ---
+  interval: 1,      // Ban đầu chờ 1 ngày
+  repetition: 0,    // Số lần thuộc liên tiếp
+  nextReview: todayStr // Cần ôn ngay hôm nay
+});
 
     if (!word || !meaning) {
       statusDiv.textContent = '⚠️ Vui lòng điền đủ Từ và Nghĩa!';
@@ -227,26 +240,70 @@ document.addEventListener('DOMContentLoaded', () => {
     loadVocabData();
   });
 
-  // --- 4. LUYỆN GÕ & PHÁT ÂM ---
-  function loadVocabData(customList = null) {
-    const fullList = getStoredVocab();
-    currentSessionList = customList || [...fullList];
-    currentIndex = 0; correctCount = 0; wrongCount = 0;
+  function calculateSRS(item, isCorrect) {
+  const today = new Date();
+  let interval = item.interval || 1;
+  let repetition = item.repetition || 0;
 
-    if (currentSessionList.length === 0) {
-      meaningDiv.textContent = 'Sổ từ vựng đang trống!';
-      phoneticDiv.textContent = '';
-      typeInput.disabled = true;
-      progressText.textContent = '0 / 0 từ';
-      return;
+  if (isCorrect) {
+    repetition += 1;
+    if (repetition === 1) {
+      interval = 1;
+    } else if (repetition === 2) {
+      interval = 6;
+    } else {
+      interval = Math.round(interval * 2.2); // Tăng dần khoảng cách ngày
     }
-
-    typeInput.disabled = false;
-    quizArea.style.display = 'block';
-    completedArea.style.display = 'none';
-    renderCurrentQuestion();
+  } else {
+    // Trả lời sai: Reset chuỗi, yêu cầu ôn lại sau 1 ngày
+    repetition = 0;
+    interval = 1;
   }
 
+  // Tính ngày ôn tập tiếp theo
+  const nextDate = new Date(today);
+  nextDate.setDate(today.getDate() + interval);
+  const nextReviewStr = nextDate.toISOString().split('T')[0];
+
+  return {
+    ...item,
+    interval,
+    repetition,
+    nextReview: nextReviewStr
+  };
+}
+
+  // --- 4. LUYỆN GÕ & PHÁT ÂM ---
+  function loadVocabData(customList = null) {
+  const fullList = getStoredVocab();
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  if (customList) {
+    currentSessionList = customList;
+  } else {
+    // Chỉ lấy các từ đến hạn ôn tập (hoặc chưa từng có lịch)
+    currentSessionList = fullList.filter(item => {
+      if (!item.nextReview) return true;
+      return item.nextReview <= todayStr;
+    });
+  }
+
+  currentIndex = 0; 
+  correctCount = 0; 
+  wrongCount = 0;
+
+  if (currentSessionList.length === 0) {
+    quizArea.style.display = 'none';
+    completedArea.style.display = 'block';
+    completeDetail.innerHTML = '🎉 **Tuyệt vời!** Hôm nay bạn đã hoàn thành hết các từ cần ôn tập.';
+    return;
+  }
+
+  typeInput.disabled = false;
+  quizArea.style.display = 'block';
+  completedArea.style.display = 'none';
+  renderCurrentQuestion();
+}
   function renderCurrentQuestion() {
     if (currentIndex >= currentSessionList.length) {
       quizArea.style.display = 'none';
@@ -321,31 +378,45 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function checkAnswer() {
-    if (isAnswered) {
-      currentIndex++;
-      renderCurrentQuestion();
-      return;
-    }
-
-    const item = currentSessionList[currentIndex];
-    const userTyping = typeInput.value.trim().toLowerCase();
-    const targetWord = item.word.trim().toLowerCase();
-    if (!userTyping) return;
-
-    isAnswered = true;
-    if (userTyping === targetWord) {
-      typeInput.className = 'quiz-input correct';
-      hintDiv.textContent = '🎉 Chính xác! Nhấn Enter để tiếp tục.';
-      hintDiv.style.color = '#34a853';
-      correctCount++;
-    } else {
-      typeInput.className = 'quiz-input incorrect';
-      hintDiv.innerHTML = `❌ Chưa đúng! Đáp án đúng: <b style="color:#d93025;">${item.word}</b>`;
-      hintDiv.style.color = '#ea4335';
-      wrongCount++;
-    }
-    speakWord(item.word);
+  if (isAnswered) {
+    currentIndex++;
+    renderCurrentQuestion();
+    return;
   }
+
+  const item = currentSessionList[currentIndex];
+  const userTyping = typeInput.value.trim().toLowerCase();
+  const targetWord = item.word.trim().toLowerCase();
+  if (!userTyping) return;
+
+  isAnswered = true;
+  const isCorrect = (userTyping === targetWord);
+
+  // 1. Cập nhật thuộc tính SRS
+  const updatedItem = calculateSRS(item, isCorrect);
+  
+  // 2. Lưu lại vào danh sách tổng trong LocalStorage & Firebase
+  const fullList = getStoredVocab();
+  const targetIndex = fullList.findIndex(v => v.word.toLowerCase() === item.word.toLowerCase());
+  if (targetIndex !== -1) {
+    fullList[targetIndex] = updatedItem;
+    saveStoredVocab(fullList);
+  }
+
+  // 3. Hiển thị phản hồi giao diện
+  if (isCorrect) {
+    typeInput.className = 'quiz-input correct';
+    hintDiv.textContent = `🎉 Chính xác! Lần ôn tiếp theo: ${updatedItem.nextReview}`;
+    hintDiv.style.color = '#34a853';
+    correctCount++;
+  } else {
+    typeInput.className = 'quiz-input incorrect';
+    hintDiv.innerHTML = `❌ Chưa đúng! Đáp án: <b style="color:#d93025;">${item.word}</b> (Sẽ ôn lại vào ngày mai)`;
+    hintDiv.style.color = '#ea4335';
+    wrongCount++;
+  }
+  speakWord(item.word);
+}
 
   // --- 5. QUẢN LÝ BÀI HỌC THEO NGÀY ---
  // --- 5. QUẢN LÝ BÀI HỌC THEO NGÀY ---
