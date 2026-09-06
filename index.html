@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Khai báo thư viện Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <title>Luyện Gõ & Sổ Từ Vựng</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1a73e8">
@@ -45,6 +48,11 @@
   </style>
 </head>
 <body>
+  <div style="background: #e8f0fe; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 8px; align-items: center;">
+  <span style="font-size: 13px; font-weight: bold; color: #1a73e8;">🔑 Mã đồng bộ:</span>
+  <input type="text" id="sync-code-input" placeholder="Nhập mã bí mật (ví dụ: ThayMai2026)" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+  <button id="btn-save-sync-code" style="background: #1a73e8; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">Lưu mã</button>
+</div>
   <div class="container">
     <div class="nav-tabs">
       <button id="tab-add-btn" class="tab-btn">✨ Thêm Từ Mới</button>
