@@ -250,40 +250,50 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- KÍCH HOẠT VÀ NÂNG CẤP PHÁT ÂM THANH ---
-let audioUnlocked = false;
+// Biến ghi nhận người dùng đã tương tác với trang hay chưa
+let userHasInteracted = false;
 
-// Tự động mở khóa âm thanh ngay từ cú click / chạm đầu tiên của người dùng
-document.addEventListener('pointerdown', function unlockAudio() {
-  if (!audioUnlocked) {
-    const silent = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
-    silent.play().then(() => {
-      audioUnlocked = true;
-    }).catch(() => {});
-  }
-}, { once: true });
+// Tự động lắng nghe cú click/chạm đầu tiên của người dùng để mở khóa âm thanh
+const unlockAudio = () => {
+  userHasInteracted = true;
+  // Mở khóa AudioContext cho trình duyệt
+  const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+  silentAudio.play().catch(() => {});
+  
+  // Gỡ bỏ sự kiện sau khi đã mở khóa xong
+  document.removeEventListener('click', unlockAudio);
+  document.removeEventListener('keydown', unlockAudio);
+  document.removeEventListener('touchstart', unlockAudio);
+};
 
+document.addEventListener('click', unlockAudio);
+document.addEventListener('keydown', unlockAudio);
+document.addEventListener('touchstart', unlockAudio);
+
+// Hàm phát âm thanh tối ưu
 function speakWord(text) {
   if (!text) return;
 
   const rate = parseFloat(speechRateSelect?.value) || 1.0;
 
-  // LỰA CHỌN 1: Thử dùng giọng AI trực tuyến của Google
-  if (audioUnlocked) {
-    const isSlow = rate < 0.9;
-    const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=en&client=tw-ob${isSlow ? '&ttsspeed=0.24' : ''}`;
-    const audio = new Audio(audioUrl);
-    
-    audio.play().catch(() => {
-      // Nếu Google TTS bị chặn hoặc lỗi -> tự động chuyển sang Lựa chọn 2
-      speakWithSpeechSynthesis(text, rate);
-    });
-  } else {
-    // LỰA CHỌN 2: Dùng SpeechSynthesis mặc định nếu chưa tương tác
+  // Nếu người dùng CHƯA tương tác lần nào, dùng Web Speech API (không bị báo lỗi đỏ Console)
+  if (!userHasInteracted) {
     speakWithSpeechSynthesis(text, rate);
+    return;
   }
+
+  // Khi ĐÃ tương tác, dùng Audio AI từ Google Translate
+  const isSlow = rate < 0.9;
+  const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=en&client=tw-ob${isSlow ? '&ttsspeed=0.24' : ''}`;
+  const audio = new Audio(audioUrl);
+
+  audio.play().catch(err => {
+    // Nếu vẫn lỗi thì dùng giọng hệ thống dự phòng
+    speakWithSpeechSynthesis(text, rate);
+  });
 }
 
-// Hàm dự phòng dùng giọng chuẩn của trình duyệt (Ưu tiên lọc giọng Google/Natural)
+// Hàm dự phòng dùng giọng hệ thống
 function speakWithSpeechSynthesis(text, rate) {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
@@ -293,11 +303,8 @@ function speakWithSpeechSynthesis(text, rate) {
   utterance.rate = rate;
 
   const voices = window.speechSynthesis.getVoices();
-  // Tìm giọng Google US English hoặc giọng Natural tự nhiên nhất
   const bestVoice = voices.find(v => v.lang.includes('en') && (v.name.includes('Google') || v.name.includes('Natural')));
-  if (bestVoice) {
-    utterance.voice = bestVoice;
-  }
+  if (bestVoice) utterance.voice = bestVoice;
 
   window.speechSynthesis.speak(utterance);
 }
