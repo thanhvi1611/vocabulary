@@ -249,41 +249,58 @@ document.addEventListener('DOMContentLoaded', () => {
     if (autoAudioToggle.checked) speakWord(item.word);
   }
 
-  // Mở khóa autoplay ngay khi người dùng chạm/bấm vào bất kỳ đâu trên web
-  document.addEventListener('click', function unlockAudio() {
-    const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
-    silentAudio.play().catch(() => {});
-    document.removeEventListener('click', unlockAudio);
-  }, { once: true });
+  // --- KÍCH HOẠT VÀ NÂNG CẤP PHÁT ÂM THANH ---
+let audioUnlocked = false;
 
-  // Hàm phát âm AI Google chuẩn
-  function speakWord(text) {
-    if (!text) return;
+// Tự động mở khóa âm thanh ngay từ cú click / chạm đầu tiên của người dùng
+document.addEventListener('pointerdown', function unlockAudio() {
+  if (!audioUnlocked) {
+    const silent = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+    silent.play().then(() => {
+      audioUnlocked = true;
+    }).catch(() => {});
+  }
+}, { once: true });
 
-    const rate = parseFloat(speechRateSelect?.value) || 1.0;
-    const isSlow = rate < 0.9; 
+function speakWord(text) {
+  if (!text) return;
 
+  const rate = parseFloat(speechRateSelect?.value) || 1.0;
+
+  // LỰA CHỌN 1: Thử dùng giọng AI trực tuyến của Google
+  if (audioUnlocked) {
+    const isSlow = rate < 0.9;
     const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=en&client=tw-ob${isSlow ? '&ttsspeed=0.24' : ''}`;
-
     const audio = new Audio(audioUrl);
     
-    // Thử phát audio AI
-    const playPromise = audio.play();
-
-    if (playPromise !== undefined) {
-      playPromise.catch(err => {
-        console.warn("Chưa tương tác hoặc lỗi phát âm AI, dùng giọng hệ thống dự phòng:", err);
-        // Nếu phát Audio file bị trình duyệt chặn -> Dùng SpeechSynthesis mặc định
-        if ('speechSynthesis' in window) {
-          window.speechSynthesis.cancel();
-          const utterance = new SpeechSynthesisUtterance(text);
-          utterance.lang = 'en-US';
-          utterance.rate = rate;
-          window.speechSynthesis.speak(utterance);
-        }
-      });
-    }
+    audio.play().catch(() => {
+      // Nếu Google TTS bị chặn hoặc lỗi -> tự động chuyển sang Lựa chọn 2
+      speakWithSpeechSynthesis(text, rate);
+    });
+  } else {
+    // LỰA CHỌN 2: Dùng SpeechSynthesis mặc định nếu chưa tương tác
+    speakWithSpeechSynthesis(text, rate);
   }
+}
+
+// Hàm dự phòng dùng giọng chuẩn của trình duyệt (Ưu tiên lọc giọng Google/Natural)
+function speakWithSpeechSynthesis(text, rate) {
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'en-US';
+  utterance.rate = rate;
+
+  const voices = window.speechSynthesis.getVoices();
+  // Tìm giọng Google US English hoặc giọng Natural tự nhiên nhất
+  const bestVoice = voices.find(v => v.lang.includes('en') && (v.name.includes('Google') || v.name.includes('Natural')));
+  if (bestVoice) {
+    utterance.voice = bestVoice;
+  }
+
+  window.speechSynthesis.speak(utterance);
+}
 
   function checkAnswer() {
     if (isAnswered) {
