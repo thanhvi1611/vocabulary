@@ -21,6 +21,10 @@ const db = firebase.database();
 // Biến lưu mã đồng bộ
 let SYNC_CODE = localStorage.getItem('user_sync_code') || 'DefaultCode';
 
+// Biến hỗ trợ âm thanh & WakeLock
+let userHasInteracted = false;
+let wakeLock = null;
+
 document.addEventListener('DOMContentLoaded', () => {
   // --- ELEMENT REFS ---
   const syncInput = document.getElementById('sync-code-input');
@@ -66,13 +70,35 @@ document.addEventListener('DOMContentLoaded', () => {
   // Hiển thị mã đồng bộ lên ô nhập
   if (syncInput) syncInput.value = SYNC_CODE;
 
+  // --- WAKE LOCK (GIỮ MÀN HÌNH LUÔN SÁNG) ---
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        console.log('💡 Đã kích hoạt giữ màn hình luôn sáng');
+        wakeLock.addEventListener('release', () => {
+          console.log('Màn hình đã hết chế độ giữ sáng');
+        });
+      }
+    } catch (err) {
+      console.warn(`Không thể giữ màn hình sáng: ${err.name}, ${err.message}`);
+    }
+  }
+
+  requestWakeLock();
+
+  document.addEventListener('visibilitychange', async () => {
+    if (wakeLock !== null && document.visibilityState === 'visible') {
+      await requestWakeLock();
+    }
+  });
+
   // --- LOCALSTORAGE & FIREBASE UTILS ---
   function getStoredVocab() {
     const data = localStorage.getItem('vocabList');
     return data ? JSON.parse(data) : [];
   }
 
-  // Hàm lưu dữ liệu (offline + đẩy lên Firebase)
   function saveStoredVocab(list) {
     localStorage.setItem('vocabList', JSON.stringify(list));
     if (SYNC_CODE) {
@@ -82,17 +108,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Hàm lắng nghe biến động thời gian thực từ Cloud
   function listenToCloudData() {
     if (!SYNC_CODE) return;
 
-    db.ref('users/' + SYNC_CODE).off(); // Hủy đăng ký cũ nếu có
+    db.ref('users/' + SYNC_CODE).off();
     db.ref('users/' + SYNC_CODE).on('value', (snapshot) => {
       const cloudData = snapshot.val();
       if (cloudData && Array.isArray(cloudData)) {
         localStorage.setItem('vocabList', JSON.stringify(cloudData));
 
-        // Cập nhật lại giao diện
         loadVocabData();
         if (manageView && manageView.style.display !== 'none') {
           renderDayList();
@@ -101,7 +125,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Sự kiện bấm lưu Mã đồng bộ
   if (btnSaveSyncCode) {
     btnSaveSyncCode.addEventListener('click', () => {
       const code = syncInput.value.trim();
@@ -133,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     activeView.style.display = 'block';
   }
 
-  // --- 2. TÍNH NĂNG DỊCH TỰ ĐỘNG & LẤY IPA ---
+  // --- 2. DỊCH TỰ ĐỘNG & LẤY IPA ---
   btnTranslate.addEventListener('click', async () => {
     const word = inputWord.value.trim();
     if (!word) return;
@@ -191,7 +214,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const today = new Date().toISOString().split('T')[0];
     const vocabList = getStoredVocab();
 
-    // Thêm từ mới lên đầu danh sách
     vocabList.unshift({ word, meaning, phonetic, date: today });
     saveStoredVocab(vocabList);
 
@@ -249,65 +271,54 @@ document.addEventListener('DOMContentLoaded', () => {
     if (autoAudioToggle.checked) speakWord(item.word);
   }
 
-  // --- KÍCH HOẠT VÀ NÂNG CẤP PHÁT ÂM THANH ---
-// Biến ghi nhận người dùng đã tương tác với trang hay chưa
-let userHasInteracted = false;
+  // --- MỞ KHÓA & PHÁT ÂM THANH ---
+  const unlockAudio = () => {
+    userHasInteracted = true;
+    const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+    silentAudio.play().catch(() => {});
+    
+    document.removeEventListener('click', unlockAudio);
+    document.removeEventListener('keydown', unlockAudio);
+    document.removeEventListener('touchstart', unlockAudio);
+  };
 
-// Tự động lắng nghe cú click/chạm đầu tiên của người dùng để mở khóa âm thanh
-const unlockAudio = () => {
-  userHasInteracted = true;
-  // Mở khóa AudioContext cho trình duyệt
-  const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
-  silentAudio.play().catch(() => {});
-  
-  // Gỡ bỏ sự kiện sau khi đã mở khóa xong
-  document.removeEventListener('click', unlockAudio);
-  document.removeEventListener('keydown', unlockAudio);
-  document.removeEventListener('touchstart', unlockAudio);
-};
+  document.addEventListener('click', unlockAudio);
+  document.addEventListener('keydown', unlockAudio);
+  document.addEventListener('touchstart', unlockAudio);
 
-document.addEventListener('click', unlockAudio);
-document.addEventListener('keydown', unlockAudio);
-document.addEventListener('touchstart', unlockAudio);
+  function speakWord(text) {
+    if (!text) return;
 
-// Hàm phát âm thanh tối ưu
-function speakWord(text) {
-  if (!text) return;
+    const rate = parseFloat(speechRateSelect?.value) || 1.0;
 
-  const rate = parseFloat(speechRateSelect?.value) || 1.0;
+    if (!userHasInteracted) {
+      speakWithSpeechSynthesis(text, rate);
+      return;
+    }
 
-  // Nếu người dùng CHƯA tương tác lần nào, dùng Web Speech API (không bị báo lỗi đỏ Console)
-  if (!userHasInteracted) {
-    speakWithSpeechSynthesis(text, rate);
-    return;
+    const isSlow = rate < 0.9;
+    const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=en&client=tw-ob${isSlow ? '&ttsspeed=0.24' : ''}`;
+    const audio = new Audio(audioUrl);
+
+    audio.play().catch(() => {
+      speakWithSpeechSynthesis(text, rate);
+    });
   }
 
-  // Khi ĐÃ tương tác, dùng Audio AI từ Google Translate
-  const isSlow = rate < 0.9;
-  const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=en&client=tw-ob${isSlow ? '&ttsspeed=0.24' : ''}`;
-  const audio = new Audio(audioUrl);
+  function speakWithSpeechSynthesis(text, rate) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
 
-  audio.play().catch(err => {
-    // Nếu vẫn lỗi thì dùng giọng hệ thống dự phòng
-    speakWithSpeechSynthesis(text, rate);
-  });
-}
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = rate;
 
-// Hàm dự phòng dùng giọng hệ thống
-function speakWithSpeechSynthesis(text, rate) {
-  if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
+    const voices = window.speechSynthesis.getVoices();
+    const bestVoice = voices.find(v => v.lang.includes('en') && (v.name.includes('Google') || v.name.includes('Natural')));
+    if (bestVoice) utterance.voice = bestVoice;
 
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'en-US';
-  utterance.rate = rate;
-
-  const voices = window.speechSynthesis.getVoices();
-  const bestVoice = voices.find(v => v.lang.includes('en') && (v.name.includes('Google') || v.name.includes('Natural')));
-  if (bestVoice) utterance.voice = bestVoice;
-
-  window.speechSynthesis.speak(utterance);
-}
+    window.speechSynthesis.speak(utterance);
+  }
 
   function checkAnswer() {
     if (isAnswered) {
@@ -336,7 +347,7 @@ function speakWithSpeechSynthesis(text, rate) {
     speakWord(item.word);
   }
 
-  // --- 5. BÀI HỌC THEO NGÀY (SỬA / XÓA) ---
+  // --- 5. QUẢN LÝ BÀI HỌC THEO NGÀY ---
   function renderDayList() {
     const list = getStoredVocab();
     dayListContainer.innerHTML = '';
@@ -388,7 +399,7 @@ function speakWithSpeechSynthesis(text, rate) {
       dayListContainer.appendChild(card);
     });
 
-    // Event Handlers
+    // Event Handlers cho danh sách bài học
     document.querySelectorAll('.btn-play-day').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const day = e.target.getAttribute('data-day');
@@ -430,42 +441,12 @@ function speakWithSpeechSynthesis(text, rate) {
     });
   }
 
-  // --- EVENTS ---
+  // --- LẮNG NGHE SỰ KIỆN GIAO DIỆN ---
   speakBtn.addEventListener('click', () => speakWord(currentSessionList[currentIndex]?.word));
   restartBtn.addEventListener('click', () => loadVocabData(currentSessionList));
   typeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer(); });
 
-  // Khởi chạy ứng dụng và bật đồng bộ Realtime từ Firebase
+  // Khởi chạy ứng dụng
   loadVocabData();
   listenToCloudData();
-});
-
-// --- QUẢN LÝ GIỮ MÀN HÌNH LUÔN SÁNG (WAKE LOCK) ---
-let wakeLock = null;
-
-// Hàm yêu cầu giữ màn hình sáng
-async function requestWakeLock() {
-  try {
-    if ('wakeLock' in navigator) {
-      wakeLock = await navigator.wakeLock.request('screen');
-      console.log('💡 Đã kích hoạt giữ màn hình luôn sáng');
-
-      // Tự động yêu cầu lại nếu người dùng chuyển tab rồi quay lại
-      wakeLock.addEventListener('release', () => {
-        console.log('Màn hình đã hết chế độ giữ sáng');
-      });
-    }
-  } catch (err) {
-    console.warn(`Không thể giữ màn hình sáng: ${err.name}, ${err.message}`);
-  }
-}
-
-// 1. Kích hoạt ngay khi trang web nạp xong
-document.addEventListener('DOMContentLoaded', requestWakeLock);
-
-// 2. Kích hoạt lại khi người dùng quay trở lại tab/ứng dụng (Visibility Change)
-document.addEventListener('visibilitychange', async () => {
-  if (wakeLock !== null && document.visibilityState === 'visible') {
-    await requestWakeLock();
-  }
 });
