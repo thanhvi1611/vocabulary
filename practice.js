@@ -439,3 +439,33 @@ function speakWithSpeechSynthesis(text, rate) {
   loadVocabData();
   listenToCloudData();
 });
+
+// --- QUẢN LÝ GIỮ MÀN HÌNH LUÔN SÁNG (WAKE LOCK) ---
+let wakeLock = null;
+
+// Hàm yêu cầu giữ màn hình sáng
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      console.log('💡 Đã kích hoạt giữ màn hình luôn sáng');
+
+      // Tự động yêu cầu lại nếu người dùng chuyển tab rồi quay lại
+      wakeLock.addEventListener('release', () => {
+        console.log('Màn hình đã hết chế độ giữ sáng');
+      });
+    }
+  } catch (err) {
+    console.warn(`Không thể giữ màn hình sáng: ${err.name}, ${err.message}`);
+  }
+}
+
+// 1. Kích hoạt ngay khi trang web nạp xong
+document.addEventListener('DOMContentLoaded', requestWakeLock);
+
+// 2. Kích hoạt lại khi người dùng quay trở lại tab/ứng dụng (Visibility Change)
+document.addEventListener('visibilitychange', async () => {
+  if (wakeLock !== null && document.visibilityState === 'visible') {
+    await requestWakeLock();
+  }
+});
