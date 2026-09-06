@@ -250,12 +250,27 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function speakWord(text) {
-    if (!text || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    utterance.rate = parseFloat(speechRateSelect.value) || 1.0;
-    window.speechSynthesis.speak(utterance);
+    if (!text) return;
+
+    // Tốc độ đọc: 1 là bình thường, 0.24 là đọc chậm (dựa vào speechRateSelect)
+    const rate = parseFloat(speechRateSelect?.value) || 1.0;
+    const isSlow = rate < 0.9; 
+
+    // Tạo URL lấy âm thanh AI chuẩn từ Google
+    const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=en&client=tw-ob${isSlow ? '&ttsspeed=0.24' : ''}`;
+
+    // Khởi tạo và phát Audio
+    const audio = new Audio(audioUrl);
+    audio.play().catch(err => {
+      console.warn("Lỗi phát âm thanh AI, chuyển về giọng mặc định:", err);
+      // Dự phòng nếu mất mạng thì dùng giọng hệ thống
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        window.speechSynthesis.speak(utterance);
+      }
+    });
   }
 
   function checkAnswer() {
