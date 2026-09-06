@@ -1,70 +1,35 @@
-// 1. Cấu hình Firebase của thầy
+// ==========================================
+// 1. CẤU HÌNH FIREBASE
+// ==========================================
 const firebaseConfig = {
-    apiKey: "AIzaSyDBYya0brt3P_vvqU9Qfwub7RRPl7fpDGo",
-    authDomain: "hoctuvungtienganh.firebaseapp.com",
-    databaseURL: "https://hoctuvungtienganh-default-rtdb.firebaseio.com",
-    projectId: "hoctuvungtienganh",
-    storageBucket: "hoctuvungtienganh.firebasestorage.app",
-    messagingSenderId: "171769209995",
-    appId: "1:171769209995:web:639a3e5d2a061793fbe08e",
-    measurementId: "G-CD3H20WE4V"
-  };
+  apiKey: "AIzaSyDBYya0brt3P_vvqU9Qfwub7RRPl7fpDGo",
+  authDomain: "hoctuvungtienganh.firebaseapp.com",
+  databaseURL: "https://hoctuvungtienganh-default-rtdb.firebaseio.com",
+  projectId: "hoctuvungtienganh",
+  storageBucket: "hoctuvungtienganh.firebasestorage.app",
+  messagingSenderId: "171769209995",
+  appId: "1:171769209995:web:639a3e5d2a061793fbe08e",
+  measurementId: "G-CD3H20WE4V"
+};
+
 // Khởi tạo Firebase
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.database();
 
-// Lấy hoặc lưu mã đồng bộ cá nhân
+// Biến lưu mã đồng bộ
 let SYNC_CODE = localStorage.getItem('user_sync_code') || 'DefaultCode';
-const syncInput = document.getElementById('sync-code-input');
-if (syncInput) syncInput.value = SYNC_CODE;
-
-document.getElementById('btn-save-sync-code')?.addEventListener('click', () => {
-  const code = syncInput.value.trim();
-  if (code) {
-    localStorage.setItem('user_sync_code', code);
-    SYNC_CODE = code;
-    alert('🎉 Đã cập nhật Mã đồng bộ! Đang tải dữ liệu mới...');
-    listenToCloudData();
-  }
-});
-
-// Hàm đẩy dữ liệu lên Đám mây
-function saveStoredVocab(list) {
-  localStorage.setItem('vocabList', JSON.stringify(list)); // Lưu bản sao offline
-  if (SYNC_CODE) {
-    db.ref('users/' + SYNC_CODE).set(list); // Đồng bộ lên Firebase
-  }
-}
-
-// Hàm lắng nghe dữ liệu biến động từ Đám mây (Đồng bộ thời gian thực)
-function listenToCloudData() {
-  if (!SYNC_CODE) return;
-  
-  db.ref('users/' + SYNC_CODE).on('value', (snapshot) => {
-    const cloudData = snapshot.val();
-    if (cloudData && Array.isArray(cloudData)) {
-      localStorage.setItem('vocabList', JSON.stringify(cloudData));
-      
-      // Tải lại giao diện hiện tại
-      if (typeof loadVocabData === 'function') loadVocabData();
-      if (document.getElementById('manage-view').style.display !== 'none') {
-        renderDayList();
-      }
-    }
-  });
-}
-
-// Khởi tạo lắng nghe dữ liệu ngay khi mở App
-listenToCloudData();
 
 document.addEventListener('DOMContentLoaded', () => {
   // --- ELEMENT REFS ---
+  const syncInput = document.getElementById('sync-code-input');
+  const btnSaveSyncCode = document.getElementById('btn-save-sync-code');
+
   const tabAddBtn = document.getElementById('tab-add-btn');
   const tabPracticeBtn = document.getElementById('tab-practice-btn');
   const tabManageBtn = document.getElementById('tab-manage-btn');
-  
+
   const addView = document.getElementById('add-view');
   const practiceView = document.getElementById('practice-view');
   const manageView = document.getElementById('manage-view');
@@ -98,14 +63,55 @@ document.addEventListener('DOMContentLoaded', () => {
   let wrongCount = 0;
   let isAnswered = false;
 
-  // --- LOCALSTORAGE UTILS ---
+  // Hiển thị mã đồng bộ lên ô nhập
+  if (syncInput) syncInput.value = SYNC_CODE;
+
+  // --- LOCALSTORAGE & FIREBASE UTILS ---
   function getStoredVocab() {
     const data = localStorage.getItem('vocabList');
     return data ? JSON.parse(data) : [];
   }
 
+  // Hàm lưu dữ liệu (offline + đẩy lên Firebase)
   function saveStoredVocab(list) {
     localStorage.setItem('vocabList', JSON.stringify(list));
+    if (SYNC_CODE) {
+      db.ref('users/' + SYNC_CODE).set(list)
+        .then(() => console.log('Đã lưu dữ liệu lên Firebase'))
+        .catch(err => console.error('Lỗi lưu Firebase:', err));
+    }
+  }
+
+  // Hàm lắng nghe biến động thời gian thực từ Cloud
+  function listenToCloudData() {
+    if (!SYNC_CODE) return;
+
+    db.ref('users/' + SYNC_CODE).off(); // Hủy đăng ký cũ nếu có
+    db.ref('users/' + SYNC_CODE).on('value', (snapshot) => {
+      const cloudData = snapshot.val();
+      if (cloudData && Array.isArray(cloudData)) {
+        localStorage.setItem('vocabList', JSON.stringify(cloudData));
+
+        // Cập nhật lại giao diện
+        loadVocabData();
+        if (manageView && manageView.style.display !== 'none') {
+          renderDayList();
+        }
+      }
+    });
+  }
+
+  // Sự kiện bấm lưu Mã đồng bộ
+  if (btnSaveSyncCode) {
+    btnSaveSyncCode.addEventListener('click', () => {
+      const code = syncInput.value.trim();
+      if (code) {
+        localStorage.setItem('user_sync_code', code);
+        SYNC_CODE = code;
+        alert('🎉 Đã cập nhật Mã đồng bộ! Đang tải dữ liệu mới...');
+        listenToCloudData();
+      }
+    });
   }
 
   function isVietnamese(text) {
@@ -113,12 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- 1. CHUYỂN TAB ---
-  tabAddBtn.addEventListener('click', () => {
-    switchTab(tabAddBtn, addView);
-  });
-  tabPracticeBtn.addEventListener('click', () => {
-    switchTab(tabPracticeBtn, practiceView);
-  });
+  tabAddBtn.addEventListener('click', () => switchTab(tabAddBtn, addView));
+  tabPracticeBtn.addEventListener('click', () => switchTab(tabPracticeBtn, practiceView));
   tabManageBtn.addEventListener('click', () => {
     switchTab(tabManageBtn, manageView);
     renderDayList();
@@ -144,7 +146,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const tl = isVi ? 'en' : 'vi';
 
     try {
-      // Dịch nghĩa qua Google Translate API
       const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(word)}`);
       const data = await res.json();
       const translatedText = data[0].map(item => item[0]).join('');
@@ -156,7 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
         inputMeaning.value = translatedText;
       }
 
-      // Lấy phiên âm IPA nếu là từ tiếng Anh đơn
       const engWord = isVi ? translatedText : word;
       if (engWord.split(/\s+/).length === 1) {
         try {
@@ -190,19 +190,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const today = new Date().toISOString().split('T')[0];
     const vocabList = getStoredVocab();
-    
+
     // Thêm từ mới lên đầu danh sách
     vocabList.unshift({ word, meaning, phonetic, date: today });
     saveStoredVocab(vocabList);
 
-    statusDiv.textContent = '💾 Đã lưu từ vựng thành công!';
+    statusDiv.textContent = '💾 Đã lưu & đồng bộ từ vựng thành công!';
     statusDiv.style.color = '#34a853';
 
     inputWord.value = '';
     inputMeaning.value = '';
     inputPhonetic.value = '';
-    
-    // Tải lại bài học
+
     loadVocabData();
   });
 
@@ -385,6 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
   restartBtn.addEventListener('click', () => loadVocabData(currentSessionList));
   typeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer(); });
 
-  // Khởi chạy
+  // Khởi chạy ứng dụng và bật đồng bộ Realtime từ Firebase
   loadVocabData();
+  listenToCloudData();
 });
