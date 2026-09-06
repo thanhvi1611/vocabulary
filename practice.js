@@ -1,3 +1,64 @@
+// 1. Cấu hình Firebase của thầy
+const firebaseConfig = {
+    apiKey: "AIzaSyDBYya0brt3P_vvqU9Qfwub7RRPl7fpDGo",
+    authDomain: "hoctuvungtienganh.firebaseapp.com",
+    databaseURL: "https://hoctuvungtienganh-default-rtdb.firebaseio.com",
+    projectId: "hoctuvungtienganh",
+    storageBucket: "hoctuvungtienganh.firebasestorage.app",
+    messagingSenderId: "171769209995",
+    appId: "1:171769209995:web:639a3e5d2a061793fbe08e",
+    measurementId: "G-CD3H20WE4V"
+  };
+// Khởi tạo Firebase
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.database();
+
+// Lấy hoặc lưu mã đồng bộ cá nhân
+let SYNC_CODE = localStorage.getItem('user_sync_code') || 'DefaultCode';
+const syncInput = document.getElementById('sync-code-input');
+if (syncInput) syncInput.value = SYNC_CODE;
+
+document.getElementById('btn-save-sync-code')?.addEventListener('click', () => {
+  const code = syncInput.value.trim();
+  if (code) {
+    localStorage.setItem('user_sync_code', code);
+    SYNC_CODE = code;
+    alert('🎉 Đã cập nhật Mã đồng bộ! Đang tải dữ liệu mới...');
+    listenToCloudData();
+  }
+});
+
+// Hàm đẩy dữ liệu lên Đám mây
+function saveStoredVocab(list) {
+  localStorage.setItem('vocabList', JSON.stringify(list)); // Lưu bản sao offline
+  if (SYNC_CODE) {
+    db.ref('users/' + SYNC_CODE).set(list); // Đồng bộ lên Firebase
+  }
+}
+
+// Hàm lắng nghe dữ liệu biến động từ Đám mây (Đồng bộ thời gian thực)
+function listenToCloudData() {
+  if (!SYNC_CODE) return;
+  
+  db.ref('users/' + SYNC_CODE).on('value', (snapshot) => {
+    const cloudData = snapshot.val();
+    if (cloudData && Array.isArray(cloudData)) {
+      localStorage.setItem('vocabList', JSON.stringify(cloudData));
+      
+      // Tải lại giao diện hiện tại
+      if (typeof loadVocabData === 'function') loadVocabData();
+      if (document.getElementById('manage-view').style.display !== 'none') {
+        renderDayList();
+      }
+    }
+  });
+}
+
+// Khởi tạo lắng nghe dữ liệu ngay khi mở App
+listenToCloudData();
+
 document.addEventListener('DOMContentLoaded', () => {
   // --- ELEMENT REFS ---
   const tabAddBtn = document.getElementById('tab-add-btn');
