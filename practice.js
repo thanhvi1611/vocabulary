@@ -249,28 +249,40 @@ document.addEventListener('DOMContentLoaded', () => {
     if (autoAudioToggle.checked) speakWord(item.word);
   }
 
+  // Mở khóa autoplay ngay khi người dùng chạm/bấm vào bất kỳ đâu trên web
+  document.addEventListener('click', function unlockAudio() {
+    const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+    silentAudio.play().catch(() => {});
+    document.removeEventListener('click', unlockAudio);
+  }, { once: true });
+
+  // Hàm phát âm AI Google chuẩn
   function speakWord(text) {
     if (!text) return;
 
-    // Tốc độ đọc: 1 là bình thường, 0.24 là đọc chậm (dựa vào speechRateSelect)
     const rate = parseFloat(speechRateSelect?.value) || 1.0;
     const isSlow = rate < 0.9; 
 
-    // Tạo URL lấy âm thanh AI chuẩn từ Google
     const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=en&client=tw-ob${isSlow ? '&ttsspeed=0.24' : ''}`;
 
-    // Khởi tạo và phát Audio
     const audio = new Audio(audioUrl);
-    audio.play().catch(err => {
-      console.warn("Lỗi phát âm thanh AI, chuyển về giọng mặc định:", err);
-      // Dự phòng nếu mất mạng thì dùng giọng hệ thống
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US';
-        window.speechSynthesis.speak(utterance);
-      }
-    });
+    
+    // Thử phát audio AI
+    const playPromise = audio.play();
+
+    if (playPromise !== undefined) {
+      playPromise.catch(err => {
+        console.warn("Chưa tương tác hoặc lỗi phát âm AI, dùng giọng hệ thống dự phòng:", err);
+        // Nếu phát Audio file bị trình duyệt chặn -> Dùng SpeechSynthesis mặc định
+        if ('speechSynthesis' in window) {
+          window.speechSynthesis.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'en-US';
+          utterance.rate = rate;
+          window.speechSynthesis.speak(utterance);
+        }
+      });
+    }
   }
 
   function checkAnswer() {
