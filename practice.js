@@ -123,6 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     });
+    updateDueCountBadge();
   }
 
   if (btnSaveSyncCode) {
@@ -238,6 +239,7 @@ vocabList.unshift({
     inputPhonetic.value = '';
 
     loadVocabData();
+    updateDueCountBadge();
   });
 
   function calculateSRS(item, isCorrect) {
@@ -273,6 +275,26 @@ vocabList.unshift({
   };
 }
 
+function updateDueCountBadge() {
+  const fullList = getStoredVocab();
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // Lọc các từ cần ôn: chưa có lịch hoặc nextReview <= hôm nay
+  const dueWords = fullList.filter(item => {
+    if (!item.nextReview) return true;
+    return item.nextReview <= todayStr;
+  });
+
+  const badgeEl = document.getElementById('due-count-badge');
+  if (badgeEl) {
+    if (dueWords.length > 0) {
+      badgeEl.textContent = dueWords.length;
+      badgeEl.style.display = 'inline-block';
+    } else {
+      badgeEl.style.display = 'none';
+    }
+  }
+}
   // --- 4. LUYỆN GÕ & PHÁT ÂM ---
   function loadVocabData(customList = null) {
   const fullList = getStoredVocab();
@@ -416,9 +438,9 @@ vocabList.unshift({
     wrongCount++;
   }
   speakWord(item.word);
+  updateDueCountBadge();
 }
 
-  // --- 5. QUẢN LÝ BÀI HỌC THEO NGÀY ---
  // --- 5. QUẢN LÝ BÀI HỌC THEO NGÀY ---
   function renderDayList() {
     const list = getStoredVocab();
