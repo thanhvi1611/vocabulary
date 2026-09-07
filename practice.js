@@ -1,4 +1,184 @@
 // ==========================================
+// 1. DỮ LIỆU BỘ 44 ÂM IPA CHUẨN
+// ==========================================
+const ipaData = [
+  // NGUYÊN ÂM ĐƠN (12)
+  { symbol: "/iː/", type: "Nguyên âm dài", guide: "Môi kéo dài sang hai bên như mỉm cười, lưỡi nâng cao gần chạm ngạc trên.", examples: [{w: "See", i: "/siː/"}, {w: "Tea", i: "/tiː/"}, {w: "Read", i: "/riːd/"}] },
+  { symbol: "/ɪ/", type: "Nguyên âm ngắn", guide: "Môi hơi mở, thả lỏng hơn /iː/, lưỡi hạ thấp hơn một chút, âm ngắn gọn.", examples: [{w: "Sit", i: "/sɪt/"}, {w: "Hit", i: "/hɪt/"}, {w: "Big", i: "/bɪɡ/"}] },
+  { symbol: "/ʊ/", type: "Nguyên âm ngắn", guide: "Môi hơi tròn nhô ra phía trước, lưỡi lùi về sau, phát âm ngắn dứt khoát.", examples: [{w: "Put", i: "/pʊt/"}, {w: "Book", i: "/bʊk/"}, {w: "Look", i: "/lʊk/"}] },
+  { symbol: "/uː/", type: "Nguyên âm dài", guide: "Môi tròn và chu ra rõ rệt, lưỡi nâng cao về phía sau, phát âm kéo dài.", examples: [{w: "Too", i: "/tuː/"}, {w: "Blue", i: "/bluː/"}, {w: "Food", i: "/fuːd/"}] },
+  { symbol: "/e/", type: "Nguyên âm ngắn", guide: "Miệng mở rộng hơn âm /ɪ/, lưỡi hạ thấp hơn, âm phát ra ngắn tựa như 'e'.", examples: [{w: "Bed", i: "/bed/"}, {w: "Pen", i: "/pen/"}, {w: "Red", i: "/red/"}] },
+  { symbol: "/ə/", type: "Nguyên âm ngắn (Schwa)", guide: "Miệng mở tự nhiên, lưỡi và môi thả lỏng ở trung tâm, âm phát rất nhẹ ngắn.", examples: [{w: "About", i: "/əˈbaʊt/"}, {w: "Teacher", i: "/ˈtiːtʃər/"}] },
+  { symbol: "/ɜː/", type: "Nguyên âm dài", guide: "Miệng mở vừa, môi thả lỏng, lưỡi đặt giữa khoang miệng, ngân dài.", examples: [{w: "Bird", i: "/bɜːd/"}, {w: "Shirt", i: "/ʃɜːt/"}, {w: "Learn", i: "/lɜːn/"}] },
+  { symbol: "/ɔː/", type: "Nguyên âm dài", guide: "Tròn môi rõ rệt, lưỡi hạ thấp lùi sâu về sau, âm ngân dài.", examples: [{w: "Door", i: "/dɔːr/"}, {w: "Saw", i: "/sɔː/"}, {w: "More", i: "/mɔːr/"}] },
+  { symbol: "/æ/", type: "Nguyên âm ngắn", guide: "Mở rộng miệng (kết hợp 'a' và 'e'), hạ cằm thấp, lưỡi nằm sát đáy miệng.", examples: [{w: "Cat", i: "/kæt/"}, {w: "Bad", i: "/bæd/"}, {w: "Apple", i: "/ˈæpl/"}] },
+  { symbol: "/ʌ/", type: "Nguyên âm ngắn", guide: "Miệng mở vừa phải, lưỡi nâng nhẹ lùi về sau, âm gọn giống 'ă/â'.", examples: [{w: "Cup", i: "/kʌp/"}, {w: "Bus", i: "/bʌs/"}, {w: "Sun", i: "/sʌn/"}] },
+  { symbol: "/ɑː/", type: "Nguyên âm dài", guide: "Miệng mở rộng tối đa chiều dọc, lưỡi đè thấp, phát âm sâu từ cổ họng.", examples: [{w: "Car", i: "/kɑːr/"}, {w: "Far", i: "/fɑːr/"}, {w: "Heart", i: "/hɑːt/"}] },
+  { symbol: "/ɒ/", type: "Nguyên âm ngắn", guide: "Miệng mở rộng, môi tròn nhẹ, lưỡi hạ thấp lùi về sau, âm dứt khoát.", examples: [{w: "On", i: "/ɒn/"}, {w: "Hot", i: "/hɒt/"}, {w: "Stop", i: "/stɒp/"}] },
+
+  // NGUYÊN ÂM ĐÔI (8)
+  { symbol: "/ɪə/", type: "Nguyên âm đôi", guide: "Chuyển mượt từ âm /ɪ/ (hẹp) sang âm /ə/ (thả lỏng), âm đầu rõ dài hơn.", examples: [{w: "Ear", i: "/ɪər/"}, {w: "Near", i: "/nɪər/"}, {w: "Here", i: "/hɪər/"}] },
+  { symbol: "/eɪ/", type: "Nguyên âm đôi", guide: "Chuyển mượt từ âm /e/ (mở vừa) sang âm /ɪ/ (kéo ngang môi sang hai bên).", examples: [{w: "Say", i: "/seɪ/"}, {w: "Name", i: "/neɪm/"}, {w: "Rain", i: "/reɪn/"}] },
+  { symbol: "/ʊə/", type: "Nguyên âm đôi", guide: "Chuyển mượt từ âm /ʊ/ (môi tròn nhô) sang âm /ə/ (thả lỏng trung tâm).", examples: [{w: "Pure", i: "/pjʊər/"}, {w: "Tour", i: "/tʊər/"}, {w: "Cure", i: "/kjʊər/"}] },
+  { symbol: "/ɔɪ/", type: "Nguyên âm đôi", guide: "Chuyển từ âm /ɔː/ (tròn môi) sang âm /ɪ/ (dẹt môi nhẹ sang hai bên).", examples: [{w: "Boy", i: "/bɔɪ/"}, {w: "Toy", i: "/tɔɪ/"}, {w: "Voice", i: "/vɔɪs/"}] },
+  { symbol: "/əʊ/", type: "Nguyên âm đôi", guide: "Chuyển từ âm /ə/ (thả lỏng) sang âm /ʊ/ (môi thu hẹp tròn lại).", examples: [{w: "Go", i: "/ɡəʊ/"}, {w: "Home", i: "/həʊm/"}, {w: "No", i: "/nəʊ/"}] },
+  { symbol: "/eə/", type: "Nguyên âm đôi", guide: "Chuyển mượt từ âm /e/ (mở miệng vừa) sang âm /ə/ (thả lỏng).", examples: [{w: "Hair", i: "/heər/"}, {w: "Chair", i: "/tʃeər/"}, {w: "Where", i: "/weər/"}] },
+  { symbol: "/aɪ/", type: "Nguyên âm đôi", guide: "Bắt đầu bằng /a/ (mở rộng) rồi thu hẹp khẩu hình trượt lên âm /ɪ/.", examples: [{w: "My", i: "/maɪ/"}, {w: "Time", i: "/taɪm/"}, {w: "Sky", i: "/skaɪ/"}] },
+  { symbol: "/aʊ/", type: "Nguyên âm đôi", guide: "Bắt đầu bằng /a/ (mở rộng) rồi tròn môi trượt sang âm /ʊ/.", examples: [{w: "Cow", i: "/kaʊ/"}, {w: "Now", i: "/naʊ/"}, {w: "House", i: "/haʊs/"}] },
+
+  // PHỤ ÂM (24)
+  { symbol: "/p/", type: "Phụ âm vô thanh", guide: "Khép hai môi chặn không khí, bật mạnh hơi ra ngoài. Không rung cổ họng.", examples: [{w: "Pen", i: "/pen/"}, {w: "Pop", i: "/pɒp/"}, {w: "Map", i: "/mæp/"}] },
+  { symbol: "/b/", type: "Phụ âm hữu thanh", guide: "Môi khép bật âm giống /p/, nhưng phát âm CÓ rung cổ họng.", examples: [{w: "Bad", i: "/bæd/"}, {w: "Big", i: "/bɪɡ/"}, {w: "Cab", i: "/kæb/"}] },
+  { symbol: "/t/", type: "Phụ âm vô thanh", guide: "Đầu lưỡi chạm gờ răng trên chặn khí, bật hơi ra. Không rung cổ họng.", examples: [{w: "Tea", i: "/tiː/"}, {w: "Ten", i: "/ten/"}, {w: "Cat", i: "/kæt/"}] },
+  { symbol: "/d/", type: "Phụ âm hữu thanh", guide: "Vị trí lưỡi giống âm /t/ nhưng bật âm CÓ rung cổ họng.", examples: [{w: "Do", i: "/duː/"}, {w: "Dog", i: "/dɒɡ/"}, {w: "Red", i: "/red/"}] },
+  { symbol: "/tʃ/", type: "Phụ âm vô thanh", guide: "Môi chu ra trước, đầu lưỡi chạm gờ răng trên bật hơi mạnh. Không rung cổ.", examples: [{w: "Chair", i: "/tʃeər/"}, {w: "Church", i: "/tʃɜːtʃ/"}] },
+  { symbol: "/dʒ/", type: "Phụ âm hữu thanh", guide: "Khẩu hình môi và lưỡi giống /tʃ/, nhưng phát âm CÓ rung cổ họng.", examples: [{w: "Job", i: "/dʒɒb/"}, {w: "Joy", i: "/dʒɔɪ/"}, {w: "Age", i: "/eɪdʒ/"}] },
+  { symbol: "/k/", type: "Phụ âm vô thanh", guide: "Cuống lưỡi nâng lên chạm ngạc mềm chặn khí, bật hơi ra. Không rung cổ.", examples: [{w: "Key", i: "/kiː/"}, {w: "Cat", i: "/kæt/"}, {w: "Back", i: "/bæk/"}] },
+  { symbol: "/ɡ/", type: "Phụ âm hữu thanh", guide: "Vị trí cuống lưỡi giống /k/, bật âm CÓ rung cổ họng.", examples: [{w: "Go", i: "/ɡəʊ/"}, {w: "Get", i: "/ɡet/"}, {w: "Bag", i: "/bæɡ/"}] },
+  { symbol: "/f/", type: "Phụ âm vô thanh", guide: "Răng cửa trên chạm nhẹ môi dưới, đẩy hơi qua kẽ răng. Không rung cổ.", examples: [{w: "Fish", i: "/fɪʃ/"}, {w: "Food", i: "/fuːd/"}] },
+  { symbol: "/v/", type: "Phụ âm hữu thanh", guide: "Răng và môi đặt giống /f/, đẩy hơi CÓ rung cổ họng.", examples: [{w: "Voice", i: "/vɔɪs/"}, {w: "Very", i: "/ˈveri/"}, {w: "Love", i: "/lʌv/"}] },
+  { symbol: "/θ/", type: "Phụ âm vô thanh", guide: "Đặt đầu lưỡi giữa hai hàng răng cửa, thổi luồng hơi ra. Không rung cổ.", examples: [{w: "Think", i: "/θɪŋk/"}, {w: "Bath", i: "/bɑːθ/"}] },
+  { symbol: "/ð/", type: "Phụ âm hữu thanh", guide: "Đặt đầu lưỡi giữa hai hàng răng giống /θ/, nhưng phát âm CÓ rung cổ.", examples: [{w: "This", i: "/ðɪs/"}, {w: "That", i: "/ðæt/"}, {w: "Mother", i: "/ˈmʌðər/"}] },
+  { symbol: "/s/", type: "Phụ âm vô thanh", guide: "Hai hàm răng khép gần sát, xì hơi qua kẽ răng. Không rung cổ họng.", examples: [{w: "Sun", i: "/sʌn/"}, {w: "See", i: "/siː/"}, {w: "Bus", i: "/bʌs/"}] },
+  { symbol: "/z/", type: "Phụ âm hữu thanh", guide: "Khẩu hình giống /s/, xì hơi CÓ rung cổ họng (như tiếng ong kêu).", examples: [{w: "Zoo", i: "/zuː/"}, {w: "Zip", i: "/zɪp/"}, {w: "Rose", i: "/rəʊz/"}] },
+  { symbol: "/ʃ/", type: "Phụ âm vô thanh", guide: "Môi tròn chu ra trước, uốn nhẹ lưỡi thổi hơi mạnh. Không rung cổ.", examples: [{w: "She", i: "/ʃiː/"}, {w: "Shoe", i: "/ʃuː/"}, {w: "Fish", i: "/fɪʃ/"}] },
+  { symbol: "/ʒ/", type: "Phụ âm hữu thanh", guide: "Khẩu hình giống /ʃ/, nhưng xì hơi CÓ rung cổ họng.", examples: [{w: "Vision", i: "/ˈvɪʒn/"}, {w: "Measure", i: "/ˈmeʒər/"}] },
+  { symbol: "/m/", type: "Phụ âm hữu thanh (Âm mũi)", guide: "Khép hai môi, hơi thoát hoàn toàn qua đường mũi. Rung cổ họng.", examples: [{w: "Man", i: "/mæn/"}, {w: "Moon", i: "/muːn/"}] },
+  { symbol: "/n/", type: "Phụ âm hữu thanh (Âm mũi)", guide: "Đầu lưỡi chạm gờ răng trên, hơi thoát qua đường mũi. Rung cổ họng.", examples: [{w: "No", i: "/nəʊ/"}, {w: "Name", i: "/neɪm/"}] },
+  { symbol: "/ŋ/", type: "Phụ âm hữu thanh (Âm mũi)", guide: "Cuống lưỡi nâng chặn khoang miệng, hơi thoát qua mũi. Rung cổ họng.", examples: [{w: "Sing", i: "/sɪŋ/"}, {w: "Long", i: "/lɒŋ/"}] },
+  { symbol: "/h/", type: "Phụ âm vô thanh", guide: "Miệng mở tự nhiên, đẩy hơi nhẹ từ cổ họng ra như thở dốc. Không rung.", examples: [{w: "Hat", i: "/hæt/"}, {w: "Hot", i: "/hɒt/"}] },
+  { symbol: "/l/", type: "Phụ âm hữu thanh", guide: "Đầu lưỡi chạm gờ răng trên, hơi thoát ra hai bên cạnh lưỡi. Rung cổ.", examples: [{w: "Leg", i: "/leɡ/"}, {w: "Love", i: "/lʌv/"}] },
+  { symbol: "/r/", type: "Phụ âm hữu thanh", guide: "Đầu lưỡi uốn cong về sau (không chạm ngạc), môi hơi tròn. Rung cổ.", examples: [{w: "Red", i: "/red/"}, {w: "Run", i: "/rʌn/"}] },
+  { symbol: "/w/", type: "Phụ âm hữu thanh", guide: "Môi tròn chu ra giống /uː/, sau đó nhanh chóng mở rộng ra. Rung cổ.", examples: [{w: "Wet", i: "/wet/"}, {w: "Win", i: "/wɪn/"}] },
+  { symbol: "/j/", type: "Phụ âm hữu thanh", guide: "Nâng thân lưỡi lên gần ngạc cứng giống /iː/, hạ lưỡi thoát khí. Rung cổ.", examples: [{w: "Yes", i: "/jes/"}, {w: "You", i: "/juː/"}] }
+];
+
+let currentIpaIndex = 0;
+
+// ==========================================
+// 2. CHUYỂN ĐỔI TAB & ĐIỀU HƯỚNG GIAO DIỆN
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+  const tabAddBtn = document.getElementById('tab-add-btn');
+  const tabPracticeBtn = document.getElementById('tab-practice-btn');
+  const tabManageBtn = document.getElementById('tab-manage-btn');
+  const tabIpaBtn = document.getElementById('tab-ipa-btn');
+
+  const addView = document.getElementById('add-view');
+  const practiceView = document.getElementById('practice-view');
+  const manageView = document.getElementById('manage-view');
+  const ipaView = document.getElementById('ipa-view');
+
+  function switchTab(activeBtn, activeView) {
+    [tabAddBtn, tabPracticeBtn, tabManageBtn, tabIpaBtn].forEach(btn => btn.classList.remove('active'));
+    [addView, practiceView, manageView, ipaView].forEach(view => view.style.display = 'none');
+
+    activeBtn.classList.add('active');
+    activeView.style.display = 'block';
+  }
+
+  tabAddBtn.addEventListener('click', () => switchTab(tabAddBtn, addView));
+  tabPracticeBtn.addEventListener('click', () => switchTab(tabPracticeBtn, practiceView));
+  tabManageBtn.addEventListener('click', () => switchTab(tabManageBtn, manageView));
+  
+  // Xử lý riêng khi bấm Tab Flashcard IPA
+  tabIpaBtn.addEventListener('click', () => {
+    switchTab(tabIpaBtn, ipaView);
+    renderIpaCard(currentIpaIndex);
+  });
+
+  // Khởi tạo điều khiển Flashcard IPA
+  initIpaFlashcard();
+});
+
+// ==========================================
+// 3. LOGIC ĐIỀU KHIỂN FLASHCARD IPA 3D
+// ==========================================
+function initIpaFlashcard() {
+  const ipaCard = document.getElementById('ipa-card');
+  const btnPrev = document.getElementById('ipa-btn-prev');
+  const btnNext = document.getElementById('ipa-btn-next');
+  const btnSound = document.getElementById('ipa-btn-sound');
+
+  // Sự kiện lật thẻ
+  ipaCard.addEventListener('click', (e) => {
+    if (e.target.closest('#ipa-btn-sound')) return;
+    ipaCard.classList.toggle('flipped');
+  });
+
+  // Nút Phát Âm dùng Google TTS
+  btnSound.addEventListener('click', () => {
+    const symbol = ipaData[currentIpaIndex].symbol;
+    speakIpa(symbol);
+  });
+
+  // Chuyển thẻ
+  btnNext.addEventListener('click', () => {
+    if (currentIpaIndex < ipaData.length - 1) {
+      currentIpaIndex++;
+      renderIpaCard(currentIpaIndex);
+    }
+  });
+
+  btnPrev.addEventListener('click', () => {
+    if (currentIpaIndex > 0) {
+      currentIpaIndex--;
+      renderIpaCard(currentIpaIndex);
+    }
+  });
+}
+
+// Hiển thị nội dung thẻ IPA theo index
+function renderIpaCard(index) {
+  const cardData = ipaData[index];
+  const ipaCard = document.getElementById('ipa-card');
+
+  ipaCard.classList.remove('flipped');
+
+  setTimeout(() => {
+    document.getElementById('ipa-front-symbol').textContent = cardData.symbol;
+    document.getElementById('ipa-back-type').textContent = cardData.type;
+    document.getElementById('ipa-back-guide').textContent = cardData.guide;
+    document.getElementById('ipa-counter').textContent = `${index + 1} / ${ipaData.length}`;
+
+    const examplesContainer = document.getElementById('ipa-back-examples');
+    examplesContainer.innerHTML = cardData.examples.map(ex => `
+      <li><b>${ex.w}</b> <span style="color:#1a73e8;">${ex.i}</span></li>
+    `).join('');
+  }, 150);
+}
+
+// Hàm phát âm IPA chuẩn qua Google TTS
+function speakIpa(symbol) {
+  const cleanSymbol = symbol.replace(/\//g, '').trim();
+  
+  // Thử phát âm qua Audio Stream
+  try {
+    const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleanSymbol)}&tl=en&client=tw-ob`;
+    const audio = new Audio(audioUrl);
+    audio.play().catch(() => speakSpeechSynthesis(cleanSymbol));
+  } catch (e) {
+    speakSpeechSynthesis(cleanSymbol);
+  }
+}
+
+function speakSpeechSynthesis(text) {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.8;
+    window.speechSynthesis.speak(utterance);
+  }
+}
+
+// ==========================================
+// 4. MÃ NGUỒN CŨ CỦA BÀI LUYỆN GÕ & SỔ TỪ VỰNG
+// (Thầy giữ nguyên các hàm Firebase / Bài luyện gõ / SRS của thầy bên dưới)
+// ==========================================
+
+
+// ==========================================
 // 1. CẤU HÌNH FIREBASE
 // ==========================================
 const firebaseConfig = {
