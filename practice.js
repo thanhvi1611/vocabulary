@@ -108,6 +108,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // --- CẬP NHẬT BADGE ĐẾM SỐ TỪ CẦN ÔN (SRS) ---
+  function updateDueCountBadge() {
+    const fullList = getStoredVocab();
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    const dueWords = fullList.filter(item => {
+      if (!item.nextReview) return true;
+      return item.nextReview <= todayStr;
+    });
+
+    const badgeEl = document.getElementById('due-count-badge');
+    if (badgeEl) {
+      if (dueWords.length > 0) {
+        badgeEl.textContent = dueWords.length;
+        badgeEl.style.display = 'inline-block';
+      } else {
+        badgeEl.style.display = 'none';
+      }
+    }
+  }
+
   function listenToCloudData() {
     if (!SYNC_CODE) return;
 
@@ -118,12 +139,12 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('vocabList', JSON.stringify(cloudData));
 
         loadVocabData();
+        updateDueCountBadge();
         if (manageView && manageView.style.display !== 'none') {
           renderDayList();
         }
       }
     });
-    updateDueCountBadge();
   }
 
   if (btnSaveSyncCode) {
@@ -200,24 +221,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // --- 3. LƯU TỪ VỰNG MỚI ---
+  // --- 3. LƯU TỪ VỰNG MỚI (CÓ SRS) ---
   btnSaveVocab.addEventListener('click', () => {
     const word = inputWord.value.trim();
     const meaning = inputMeaning.value.trim();
     const phonetic = inputPhonetic.value.trim();
-const todayObj = new Date();
-const todayStr = todayObj.toISOString().split('T')[0];
-
-vocabList.unshift({
-  word,
-  meaning,
-  phonetic,
-  date: todayStr,
-  // --- THUỘC TÍNH SRS ---
-  interval: 1,      // Ban đầu chờ 1 ngày
-  repetition: 0,    // Số lần thuộc liên tiếp
-  nextReview: todayStr // Cần ôn ngay hôm nay
-});
 
     if (!word || !meaning) {
       statusDiv.textContent = '⚠️ Vui lòng điền đủ Từ và Nghĩa!';
@@ -225,11 +233,20 @@ vocabList.unshift({
       return;
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    const vocabList = getStoredVocab();
+    const todayStr = new Date().toISOString().split('T')[0];
+    const list = getStoredVocab();
 
-    vocabList.unshift({ word, meaning, phonetic, date: today });
-    saveStoredVocab(vocabList);
+    list.unshift({
+      word,
+      meaning,
+      phonetic,
+      date: todayStr,
+      interval: 1,
+      repetition: 0,
+      nextReview: todayStr
+    });
+
+    saveStoredVocab(list);
 
     statusDiv.textContent = '💾 Đã lưu & đồng bộ từ vựng thành công!';
     statusDiv.style.color = '#34a853';
@@ -242,102 +259,79 @@ vocabList.unshift({
     updateDueCountBadge();
   });
 
+  // --- THUẬT TOÁN SRS (SPACED REPETITION) ---
   function calculateSRS(item, isCorrect) {
-  const today = new Date();
-  let interval = item.interval || 1;
-  let repetition = item.repetition || 0;
+    const today = new Date();
+    let interval = item.interval || 1;
+    let repetition = item.repetition || 0;
 
-  if (isCorrect) {
-    repetition += 1;
-    if (repetition === 1) {
+    if (isCorrect) {
+      repetition += 1;
+      if (repetition === 1) {
+        interval = 1;
+      } else if (repetition === 2) {
+        interval = 6;
+      } else {
+        interval = Math.round(interval * 2.2);
+      }
+    } else {
+      repetition = 0;
       interval = 1;
-    } else if (repetition === 2) {
-      interval = 6;
-    } else {
-      interval = Math.round(interval * 2.2); // Tăng dần khoảng cách ngày
     }
-  } else {
-    // Trả lời sai: Reset chuỗi, yêu cầu ôn lại sau 1 ngày
-    repetition = 0;
-    interval = 1;
+
+    const nextDate = new Date(today);
+    nextDate.setDate(today.getDate() + interval);
+    const nextReviewStr = nextDate.toISOString().split('T')[0];
+
+    return {
+      ...item,
+      interval,
+      repetition,
+      nextReview: nextReviewStr
+    };
   }
 
-  // Tính ngày ôn tập tiếp theo
-  const nextDate = new Date(today);
-  nextDate.setDate(today.getDate() + interval);
-  const nextReviewStr = nextDate.toISOString().split('T')[0];
-
-  return {
-    ...item,
-    interval,
-    repetition,
-    nextReview: nextReviewStr
-  };
-}
-
-function updateDueCountBadge() {
-  const fullList = getStoredVocab();
-  const todayStr = new Date().toISOString().split('T')[0];
-
-  // Lọc các từ cần ôn: chưa có lịch hoặc nextReview <= hôm nay
-  const dueWords = fullList.filter(item => {
-    if (!item.nextReview) return true;
-    return item.nextReview <= todayStr;
-  });
-
-  const badgeEl = document.getElementById('due-count-badge');
-  if (badgeEl) {
-    if (dueWords.length > 0) {
-      badgeEl.textContent = dueWords.length;
-      badgeEl.style.display = 'inline-block';
-    } else {
-      badgeEl.style.display = 'none';
-    }
-  }
-}
   // --- 4. LUYỆN GÕ & PHÁT ÂM ---
   function loadVocabData(customList = null) {
-  const fullList = getStoredVocab();
-  const todayStr = new Date().toISOString().split('T')[0];
+    const fullList = getStoredVocab();
+    const todayStr = new Date().toISOString().split('T')[0];
 
-  if (customList) {
-    currentSessionList = customList;
-  } else {
-    // Chỉ lấy các từ đến hạn ôn tập (hoặc chưa từng có lịch)
-    currentSessionList = fullList.filter(item => {
-      if (!item.nextReview) return true;
-      return item.nextReview <= todayStr;
-    });
+    if (customList) {
+      currentSessionList = customList;
+    } else {
+      currentSessionList = fullList.filter(item => {
+        if (!item.nextReview) return true;
+        return item.nextReview <= todayStr;
+      });
+    }
+
+    currentIndex = 0; correctCount = 0; wrongCount = 0;
+
+    if (currentSessionList.length === 0) {
+      quizArea.style.display = 'none';
+      completedArea.style.display = 'block';
+      completeDetail.innerHTML = '🎉 <b>Tuyệt vời!</b> Thầy đã hoàn thành hết các từ cần ôn tập trong ngày.';
+      return;
+    }
+
+    typeInput.disabled = false;
+    quizArea.style.display = 'block';
+    completedArea.style.display = 'none';
+    renderCurrentQuestion();
   }
 
-  currentIndex = 0; 
-  correctCount = 0; 
-  wrongCount = 0;
-
-  if (currentSessionList.length === 0) {
-    quizArea.style.display = 'none';
-    completedArea.style.display = 'block';
-    completeDetail.innerHTML = '🎉 **Tuyệt vời!** Hôm nay bạn đã hoàn thành hết các từ cần ôn tập.';
-    return;
-  }
-
-  typeInput.disabled = false;
-  quizArea.style.display = 'block';
-  completedArea.style.display = 'none';
-  renderCurrentQuestion();
-}
   function renderCurrentQuestion() {
     if (currentIndex >= currentSessionList.length) {
       quizArea.style.display = 'none';
       completedArea.style.display = 'block';
-      completeDetail.innerHTML = `Luyện xong <b>${currentSessionList.length}</b> từ.<br>Đúng: <span style="color:#34a853; font-weight:bold;">${correctCount}</span> | Sai: <span style="color:#ea4335; font-weight:bold;">${wrongCount}</span>`;
+      completeDetail.innerHTML = `Hoàn thành <b>${currentSessionList.length}</b> từ.<br>Đúng: <span style="color:#34a853; font-weight:bold;">${correctCount}</span> | Sai: <span style="color:#ea4335; font-weight:bold;">${wrongCount}</span>`;
       return;
     }
 
     const item = currentSessionList[currentIndex];
     isAnswered = false;
 
-    typeBadge.textContent = item.date ? `Ngày: ${item.date}` : 'Từ mới';
+    typeBadge.textContent = item.date ? `Ngày tạo: ${item.date}` : 'Từ mới';
     progressText.textContent = `${currentIndex + 1} / ${currentSessionList.length} từ`;
     meaningDiv.textContent = item.meaning;
     phoneticDiv.textContent = item.phonetic || '';
@@ -400,48 +394,46 @@ function updateDueCountBadge() {
   }
 
   function checkAnswer() {
-  if (isAnswered) {
-    currentIndex++;
-    renderCurrentQuestion();
-    return;
+    if (isAnswered) {
+      currentIndex++;
+      renderCurrentQuestion();
+      return;
+    }
+
+    const item = currentSessionList[currentIndex];
+    const userTyping = typeInput.value.trim().toLowerCase();
+    const targetWord = item.word.trim().toLowerCase();
+    if (!userTyping) return;
+
+    isAnswered = true;
+    const isCorrect = (userTyping === targetWord);
+
+    const updatedItem = calculateSRS(item, isCorrect);
+    
+    const fullList = getStoredVocab();
+    const targetIndex = fullList.findIndex(v => v.word.toLowerCase() === item.word.toLowerCase());
+    if (targetIndex !== -1) {
+      fullList[targetIndex] = updatedItem;
+      saveStoredVocab(fullList);
+    }
+
+    if (isCorrect) {
+      typeInput.className = 'quiz-input correct';
+      hintDiv.textContent = `🎉 Chính xác! Lần ôn tiếp theo: ${updatedItem.nextReview}`;
+      hintDiv.style.color = '#34a853';
+      correctCount++;
+    } else {
+      typeInput.className = 'quiz-input incorrect';
+      hintDiv.innerHTML = `❌ Chưa đúng! Đáp án: <b style="color:#d93025;">${item.word}</b> (Sẽ ôn lại vào ngày mai)`;
+      hintDiv.style.color = '#ea4335';
+      wrongCount++;
+    }
+    
+    updateDueCountBadge();
+    speakWord(item.word);
   }
 
-  const item = currentSessionList[currentIndex];
-  const userTyping = typeInput.value.trim().toLowerCase();
-  const targetWord = item.word.trim().toLowerCase();
-  if (!userTyping) return;
-
-  isAnswered = true;
-  const isCorrect = (userTyping === targetWord);
-
-  // 1. Cập nhật thuộc tính SRS
-  const updatedItem = calculateSRS(item, isCorrect);
-  
-  // 2. Lưu lại vào danh sách tổng trong LocalStorage & Firebase
-  const fullList = getStoredVocab();
-  const targetIndex = fullList.findIndex(v => v.word.toLowerCase() === item.word.toLowerCase());
-  if (targetIndex !== -1) {
-    fullList[targetIndex] = updatedItem;
-    saveStoredVocab(fullList);
-  }
-
-  // 3. Hiển thị phản hồi giao diện
-  if (isCorrect) {
-    typeInput.className = 'quiz-input correct';
-    hintDiv.textContent = `🎉 Chính xác! Lần ôn tiếp theo: ${updatedItem.nextReview}`;
-    hintDiv.style.color = '#34a853';
-    correctCount++;
-  } else {
-    typeInput.className = 'quiz-input incorrect';
-    hintDiv.innerHTML = `❌ Chưa đúng! Đáp án: <b style="color:#d93025;">${item.word}</b> (Sẽ ôn lại vào ngày mai)`;
-    hintDiv.style.color = '#ea4335';
-    wrongCount++;
-  }
-  speakWord(item.word);
-  updateDueCountBadge();
-}
-
- // --- 5. QUẢN LÝ BÀI HỌC THEO NGÀY ---
+  // --- 5. QUẢN LÝ BÀI HỌC THEO NGÀY ---
   function renderDayList() {
     const list = getStoredVocab();
     dayListContainer.innerHTML = '';
@@ -494,7 +486,6 @@ function updateDueCountBadge() {
       dayListContainer.appendChild(card);
     });
 
-    // Sự kiện phát âm cho từng từ riêng lẻ trong danh sách
     document.querySelectorAll('.btn-speak-item').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const word = e.target.getAttribute('data-word');
@@ -502,7 +493,6 @@ function updateDueCountBadge() {
       });
     });
 
-    // Event Handlers cho danh sách bài học
     document.querySelectorAll('.btn-play-day').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const day = e.target.getAttribute('data-day');
@@ -538,6 +528,7 @@ function updateDueCountBadge() {
           const vocabList = getStoredVocab();
           vocabList.splice(idx, 1);
           saveStoredVocab(vocabList);
+          updateDueCountBadge();
           renderDayList();
         }
       });
@@ -551,5 +542,6 @@ function updateDueCountBadge() {
 
   // Khởi chạy ứng dụng
   loadVocabData();
+  updateDueCountBadge();
   listenToCloudData();
 });
