@@ -408,19 +408,51 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', unlockAudio);
   document.addEventListener('touchstart', unlockAudio);
 
+ // --- HÀM PHÁT ÂM TỐI ƯU CẢI TIẾN ---
   function speakWord(text) {
     if (!text) return;
     const rate = parseFloat(speechRateSelect?.value) || 1.0;
 
-    if (!userHasInteracted) {
-      speakWithSpeechSynthesis(text, rate);
-      return;
+    // Tối ưu hóa chuỗi phát âm
+    const cleanText = text.trim();
+
+    // Sử dụng ResponsiveVoice hoặc Google TTS với User-Agent chuẩn
+    const isSlow = rate < 0.9;
+    const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleanText)}&tl=en&client=tw-ob${isSlow ? '&ttsspeed=0.24' : ''}`;
+    
+    const audio = new Audio();
+    audio.src = audioUrl;
+    audio.playbackRate = isSlow ? 1.0 : rate; // Điều chỉnh tốc độ đọc
+
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // Nếu Google TTS bị chặn, sử dụng Web Speech API nhưng ưu tiên chọn giọng đọc Tiếng Anh tự nhiên (Google US English / Natural)
+        speakWithNaturalVoice(cleanText, rate);
+      });
+    }
+  }
+
+  // --- HÀM DỰ PHÒNG TÌM GIỌNG ĐỌC TỰ NHIÊN HƠN ---
+  function speakWithNaturalVoice(text, rate) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = rate;
+
+    // Lấy danh sách giọng đọc sẵn có trên máy và ưu tiên giọng Google / Natural
+    const voices = window.speechSynthesis.getVoices();
+    const naturalVoice = voices.find(v => 
+      v.lang.includes('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha'))
+    );
+
+    if (naturalVoice) {
+      utterance.voice = naturalVoice;
     }
 
-    const isSlow = rate < 0.9;
-    const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=en&client=tw-ob${isSlow ? '&ttsspeed=0.24' : ''}`;
-    const audio = new Audio(audioUrl);
-    audio.play().catch(() => speakWithSpeechSynthesis(text, rate));
+    window.speechSynthesis.speak(utterance);
   }
 
   function speakWithSpeechSynthesis(text, rate) {
