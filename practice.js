@@ -543,6 +543,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (restartBtn) restartBtn.addEventListener('click', () => loadVocabData(currentSessionList));
 
   // --- QUẢN LÝ DANH SÁCH BÀI HỌC ---
+  // --- QUẢN LÝ DANH SÁCH BÀI HỌC (ĐÃ BỔ SUNG SỬA TỪ & IPA) ---
   function renderDayList() {
     const list = getStoredVocab();
     if (!dayListContainer) return;
@@ -576,12 +577,21 @@ document.addEventListener('DOMContentLoaded', () => {
               <span style="color:#333; margin-left:8px;">👉 ${item.meaning}</span>
             </div>
             <div>
-              <button class="btn-edit-meaning" data-index="${idx}" style="background:none; border:none; cursor:pointer; color:#1a73e8; font-size:12px;">✏️ Sửa</button>
+              <button class="btn-edit-word-item" data-index="${idx}" style="background:none; border:none; cursor:pointer; color:#1a73e8; font-size:12px;">✏️ Sửa</button>
               <button class="btn-delete-word" data-index="${idx}" style="background:none; border:none; cursor:pointer; color:#ea4335; font-size:12px;">🗑️ Xóa</button>
             </div>
-            <div id="edit-box-${idx}" style="display:none; width:100%; margin-top:6px; gap:6px;">
-              <input type="text" id="input-meaning-${idx}" value="${item.meaning}" style="flex:1; padding:4px;" />
-              <button class="btn-save-meaning" data-index="${idx}" style="background:#34a853; color:white; border:none; padding:4px 8px; border-radius:4px; font-weight:bold;">Lưu</button>
+            
+            <!-- Ô SỬA TỪ VỰNG FULL: TIẾNG ANH - IPA - NGHĨA -->
+            <div id="edit-box-${idx}" style="display:none; width:100%; margin-top:8px; gap:6px; flex-direction:column; background:#f8f9fa; padding:8px; border-radius:6px; border:1px solid #dadce0;">
+              <div style="display:flex; gap:6px;">
+                <input type="text" id="input-edit-word-${idx}" value="${item.word}" placeholder="Từ tiếng Anh" style="flex:1; padding:4px 6px; border:1px solid #ccc; border-radius:4px; font-weight:bold;" />
+                <input type="text" id="input-edit-phonetic-${idx}" value="${item.phonetic || ''}" placeholder="Phiên âm IPA" style="flex:1; padding:4px 6px; border:1px solid #ccc; border-radius:4px; color:#1a73e8;" />
+              </div>
+              <div style="display:flex; gap:6px; margin-top:4px;">
+                <input type="text" id="input-edit-meaning-${idx}" value="${item.meaning}" placeholder="Nghĩa tiếng Việt" style="flex:2; padding:4px 6px; border:1px solid #ccc; border-radius:4px;" />
+                <button class="btn-save-word-item" data-index="${idx}" style="background:#34a853; color:white; border:none; padding:4px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">💾 Lưu</button>
+                <button class="btn-cancel-edit-item" data-index="${idx}" style="background:#dadce0; color:#3c4043; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Hủy</button>
+              </div>
             </div>
           </div>
         `;
@@ -597,39 +607,31 @@ document.addEventListener('DOMContentLoaded', () => {
       dayListContainer.appendChild(card);
     });
 
+    // Phát âm từ vựng
     document.querySelectorAll('.btn-speak-item').forEach(btn => {
       btn.addEventListener('click', (e) => speakWord(e.target.getAttribute('data-word')));
     });
-// --- CẬP NHẬT SỰ KIỆN HỌC LẠI BÀI THEO NGÀY (FIX TRỰC TIẾP LỖI NHẢY TAB RESET 1 TỪ) ---
+
+    // Học lại theo ngày
     document.querySelectorAll('.btn-play-day').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
-        e.stopPropagation(); // Ngăn sự kiện lan ra ngoài làm kích hoạt lại hàm load mặc định
-
+        e.stopPropagation();
         const selectedDay = e.target.getAttribute('data-day');
         const fullList = getStoredVocab();
-        
-        // Lọc toàn bộ danh sách từ vựng thuộc ngày đã chọn
-        const dayWords = fullList.filter(item => {
-          const itemDay = item.date || 'Chưa phân ngày';
-          return itemDay === selectedDay;
-        });
+        const dayWords = fullList.filter(item => (item.date || 'Chưa phân ngày') === selectedDay);
 
         if (dayWords.length > 0) {
-          // 1. Chuyển tab trước
           switchTab(tabPracticeBtn, practiceView);
-          
-          // 2. Nạp dữ liệu danh sách bài học ngay sau đó để không bị sự kiện chuyển tab ghi đè
-          setTimeout(() => {
-            loadVocabData(dayWords);
-          }, 50);
+          setTimeout(() => loadVocabData(dayWords), 50);
         } else {
           alert('Không tìm thấy từ vựng nào thuộc bài học này!');
         }
       });
     });
 
-    document.querySelectorAll('.btn-edit-meaning').forEach(btn => {
+    // Mở khung chỉnh sửa
+    document.querySelectorAll('.btn-edit-word-item').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = e.target.getAttribute('data-index');
         const editBox = document.getElementById(`edit-box-${idx}`);
@@ -637,19 +639,39 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    document.querySelectorAll('.btn-save-meaning').forEach(btn => {
+    // Hủy chỉnh sửa
+    document.querySelectorAll('.btn-cancel-edit-item').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const idx = e.target.getAttribute('data-index');
+        const editBox = document.getElementById(`edit-box-${idx}`);
+        if (editBox) editBox.style.display = 'none';
+      });
+    });
+
+    // Lưu từ vựng sau khi chỉnh sửa (Từ, IPA, Nghĩa)
+    document.querySelectorAll('.btn-save-word-item').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt(e.target.getAttribute('data-index'));
-        const inputEl = document.getElementById(`input-meaning-${idx}`);
-        const newMeaning = inputEl ? inputEl.value.trim() : '';
-        if (!newMeaning) return;
+        const newWord = document.getElementById(`input-edit-word-${idx}`)?.value.trim();
+        const newPhonetic = document.getElementById(`input-edit-phonetic-${idx}`)?.value.trim();
+        const newMeaning = document.getElementById(`input-edit-meaning-${idx}`)?.value.trim();
+
+        if (!newWord || !newMeaning) {
+          alert('Vui lòng điền đủ Từ tiếng Anh và Nghĩa!');
+          return;
+        }
+
         const vocabList = getStoredVocab();
+        vocabList[idx].word = newWord;
+        vocabList[idx].phonetic = newPhonetic;
         vocabList[idx].meaning = newMeaning;
+
         saveStoredVocab(vocabList);
         renderDayList();
       });
     });
 
+    // Xóa từ vựng
     document.querySelectorAll('.btn-delete-word').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt(e.target.getAttribute('data-index'));
