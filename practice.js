@@ -466,7 +466,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- XỬ LÝ KIỂM TRA ĐÁP ÁN VÀ PHÍM TẮT ---
   function checkAnswer() {
+    // 1. Kiểm tra an toàn: Nếu danh sách rỗng hoặc vượt quá chỉ số thì dừng ngay lập tức
+    if (!currentSessionList || currentSessionList.length === 0 || !currentSessionList[currentIndex]) {
+      return;
+    }
+
     const item = currentSessionList[currentIndex];
+    
+    // Kiểm tra an toàn nếu thuộc tính word bị thiếu
+    if (!item || !item.word) return;
+
     const userTyping = typeInput?.value.trim().toLowerCase();
     const targetWord = item.word.trim().toLowerCase();
     
@@ -483,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (isCorrect) {
       // TRƯỜNG HỢP GÕ ĐÚNG
-      isAnswered = true; // Đánh dấu đã hoàn thành từ này
+      isAnswered = true;
       const updatedItem = calculateSRS(item, true);
       const fullList = getStoredVocab();
       const targetIndex = fullList.findIndex(v => v.word.toLowerCase() === item.word.toLowerCase());
@@ -502,7 +511,7 @@ document.addEventListener('DOMContentLoaded', () => {
       updateDueCountBadge();
       speakWord(item.word);
     } else {
-      // TRƯỜNG HỢP GÕ SAI: Không đổi isAnswered thành true để giữ người dùng ở lại từ này
+      // TRƯỜNG HỢP GÕ SAI: Giữ nguyên vị trí, bôi đen ô gõ để gõ lại
       const updatedItem = calculateSRS(item, false);
       const fullList = getStoredVocab();
       const targetIndex = fullList.findIndex(v => v.word.toLowerCase() === item.word.toLowerCase());
@@ -514,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (typeInput) {
         typeInput.className = 'quiz-input incorrect';
-        typeInput.select(); // Bôi đen để người dùng dễ gõ lại
+        typeInput.select(); // Bôi đen để gõ lại dễ dàng
       }
       if (hintDiv) {
         hintDiv.innerHTML = `❌ Chưa đúng! Đáp án đúng là: <b style="color:#d93025; font-size: 16px;">${item.word}</b>. Hãy gõ lại cho đúng!`;
@@ -524,7 +533,6 @@ document.addEventListener('DOMContentLoaded', () => {
       speakWord(item.word);
     }
   }
-
   // --- BẮT SỰ KIỆN PHÍM ENTER VÀ CTRL + SPACE ---
   if (typeInput) {
     typeInput.addEventListener('keydown', (e) => {
