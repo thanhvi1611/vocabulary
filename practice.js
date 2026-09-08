@@ -120,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const dayListContainer = document.getElementById('day-list-container');
 
   let currentSessionList = [];
+  let isCustomSession = false; // Biến cờ chống Firebase ghi đè khi học bài theo ngày
   let currentIndex = 0;
   let correctCount = 0;
   let wrongCount = 0;
@@ -181,8 +182,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const cloudData = snapshot.val();
       if (cloudData && Array.isArray(cloudData)) {
         localStorage.setItem('vocabList', JSON.stringify(cloudData));
-        loadVocabData();
         updateDueCountBadge();
+
+        // Chỉ tự động tải lại phiên học mặc định nếu người dùng KHÔNG ở trong bài học tùy chỉnh theo ngày
+        if (!isCustomSession) {
+          loadVocabData();
+        }
+
         if (manageView && manageView.style.display !== 'none') {
           renderDayList();
         }
@@ -202,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // --- DIEU HUONG TAB ---
+  // --- ĐIỀU HƯỚNG TAB ---
   function switchTab(activeBtn, activeView) {
     [tabAddBtn, tabPracticeBtn, tabManageBtn, tabIpaBtn].forEach(btn => btn?.classList.remove('active'));
     [addView, practiceView, manageView, ipaView].forEach(view => { if (view) view.style.display = 'none'; });
@@ -342,12 +348,19 @@ document.addEventListener('DOMContentLoaded', () => {
     return { ...item, interval, repetition, nextReview: nextDate.toISOString().split('T')[0] };
   }
 
-  // --- KHỦNG ÔN TẬP LUYỆN GÕ ---
+  // --- KHUNG ÔN TẬP LUYỆN GÕ ---
   function loadVocabData(customList = null) {
     const fullList = getStoredVocab();
     const todayStr = new Date().toISOString().split('T')[0];
 
-    currentSessionList = customList || fullList.filter(item => !item.nextReview || item.nextReview <= todayStr);
+    if (customList) {
+      currentSessionList = customList;
+      isCustomSession = true;
+    } else {
+      currentSessionList = fullList.filter(item => !item.nextReview || item.nextReview <= todayStr);
+      isCustomSession = false;
+    }
+
     currentIndex = 0; correctCount = 0; wrongCount = 0;
 
     if (!quizArea || !completedArea) return;
@@ -355,7 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentSessionList.length === 0) {
       quizArea.style.display = 'none';
       completedArea.style.display = 'block';
-      if (completeDetail) completeDetail.innerHTML = '🎉 <b>Tuyệt vời!</b> Thầy đã hoàn thành hết các từ cần ôn tập trong ngày.';
+      if (completeDetail) completeDetail.innerHTML = '🎉 <b>Tuyệt vời!</b> Thầy đã hoàn thành hết các từ trong bài học này.';
       return;
     }
 
@@ -395,7 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (autoAudioToggle?.checked) speakWord(item.word);
   }
 
-  // --- ÂM THANH & PHÁT ÂM ---
+  // --- ÂM THANH & PHÁT ÂM CHUẨN TỰ NHIÊN ---
   const unlockAudio = () => {
     userHasInteracted = true;
     const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
@@ -408,32 +421,26 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', unlockAudio);
   document.addEventListener('touchstart', unlockAudio);
 
- // --- HÀM PHÁT ÂM TỐI ƯU CẢI TIẾN ---
   function speakWord(text) {
     if (!text) return;
     const rate = parseFloat(speechRateSelect?.value) || 1.0;
-
-    // Tối ưu hóa chuỗi phát âm
     const cleanText = text.trim();
 
-    // Sử dụng ResponsiveVoice hoặc Google TTS với User-Agent chuẩn
     const isSlow = rate < 0.9;
     const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleanText)}&tl=en&client=tw-ob${isSlow ? '&ttsspeed=0.24' : ''}`;
     
     const audio = new Audio();
     audio.src = audioUrl;
-    audio.playbackRate = isSlow ? 1.0 : rate; // Điều chỉnh tốc độ đọc
+    audio.playbackRate = isSlow ? 1.0 : rate;
 
     const playPromise = audio.play();
     if (playPromise !== undefined) {
       playPromise.catch(() => {
-        // Nếu Google TTS bị chặn, sử dụng Web Speech API nhưng ưu tiên chọn giọng đọc Tiếng Anh tự nhiên (Google US English / Natural)
         speakWithNaturalVoice(cleanText, rate);
       });
     }
   }
 
-  // --- HÀM DỰ PHÒNG TÌM GIỌNG ĐỌC TỰ NHIÊN HƠN ---
   function speakWithNaturalVoice(text, rate) {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
@@ -442,38 +449,22 @@ document.addEventListener('DOMContentLoaded', () => {
     utterance.lang = 'en-US';
     utterance.rate = rate;
 
-    // Lấy danh sách giọng đọc sẵn có trên máy và ưu tiên giọng Google / Natural
     const voices = window.speechSynthesis.getVoices();
     const naturalVoice = voices.find(v => 
       v.lang.includes('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha'))
     );
 
-    if (naturalVoice) {
-      utterance.voice = naturalVoice;
-    }
-
+    if (naturalVoice) utterance.voice = naturalVoice;
     window.speechSynthesis.speak(utterance);
   }
 
-  function speakWithSpeechSynthesis(text, rate) {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    utterance.rate = rate;
-    window.speechSynthesis.speak(utterance);
-  }
-
-  // --- XỬ LÝ KIỂM TRA ĐÁP ÁN VÀ PHÍM TẮT ---
+  // --- CHECK ANSWER & PHÍM TẮT ---
   function checkAnswer() {
-    // 1. Kiểm tra an toàn: Nếu danh sách rỗng hoặc vượt quá chỉ số thì dừng ngay lập tức
     if (!currentSessionList || currentSessionList.length === 0 || !currentSessionList[currentIndex]) {
       return;
     }
 
     const item = currentSessionList[currentIndex];
-    
-    // Kiểm tra an toàn nếu thuộc tính word bị thiếu
     if (!item || !item.word) return;
 
     const userTyping = typeInput?.value.trim().toLowerCase();
@@ -481,7 +472,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (!userTyping) return;
 
-    // Nếu đã trả lời đúng trước đó, nhấn Enter sẽ chuyển sang từ tiếp theo
     if (isAnswered) {
       currentIndex++;
       renderCurrentQuestion();
@@ -491,7 +481,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const isCorrect = (userTyping === targetWord);
 
     if (isCorrect) {
-      // TRƯỜNG HỢP GÕ ĐÚNG
       isAnswered = true;
       const updatedItem = calculateSRS(item, true);
       const fullList = getStoredVocab();
@@ -511,7 +500,6 @@ document.addEventListener('DOMContentLoaded', () => {
       updateDueCountBadge();
       speakWord(item.word);
     } else {
-      // TRƯỜNG HỢP GÕ SAI: Giữ nguyên vị trí, bôi đen ô gõ để gõ lại
       const updatedItem = calculateSRS(item, false);
       const fullList = getStoredVocab();
       const targetIndex = fullList.findIndex(v => v.word.toLowerCase() === item.word.toLowerCase());
@@ -523,7 +511,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (typeInput) {
         typeInput.className = 'quiz-input incorrect';
-        typeInput.select(); // Bôi đen để gõ lại dễ dàng
+        typeInput.select();
       }
       if (hintDiv) {
         hintDiv.innerHTML = `❌ Chưa đúng! Đáp án đúng là: <b style="color:#d93025; font-size: 16px;">${item.word}</b>. Hãy gõ lại cho đúng!`;
@@ -533,28 +521,21 @@ document.addEventListener('DOMContentLoaded', () => {
       speakWord(item.word);
     }
   }
-  // --- BẮT SỰ KIỆN PHÍM ENTER VÀ CTRL + SPACE ---
+
   if (typeInput) {
     typeInput.addEventListener('keydown', (e) => {
-      // Bấm Ctrl + Space để phát âm
+      // Ctrl + Space -> Phát âm
       if (e.ctrlKey && e.code === 'Space') {
-        e.preventDefault(); // Tránh chèn khoảng trắng vào ô input
+        e.preventDefault();
         const currentItem = currentSessionList[currentIndex];
-        if (currentItem) {
-          speakWord(currentItem.word);
-        }
+        if (currentItem) speakWord(currentItem.word);
         return;
       }
 
-      // Bấm Enter để kiểm tra / chuyển từ
+      // Enter -> Kiểm tra / Sang từ tiếp theo
       if (e.key === 'Enter') {
         checkAnswer();
       }
-    });
-  }
-  if (typeInput) {
-    typeInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') checkAnswer();
     });
   }
 
@@ -620,21 +601,19 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', (e) => speakWord(e.target.getAttribute('data-word')));
     });
 
-   // --- SỬA LỖI HỌC LẠI BÀI THEO NGÀY ---
     document.querySelectorAll('.btn-play-day').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const selectedDay = e.target.getAttribute('data-day');
         const fullList = getStoredVocab();
         
-        // Lọc chính xác toàn bộ danh sách từ vựng thuộc ngày đã chọn
         const dayWords = fullList.filter(item => {
           const itemDay = item.date || 'Chưa phân ngày';
           return itemDay === selectedDay;
         });
 
         if (dayWords.length > 0) {
-          switchTab(tabPracticeBtn, practiceView); // Chuyển sang Tab Luyện tập
-          loadVocabData(dayWords); // Truyền toàn bộ danh sách từ của ngày đó vào phần Luyện tập
+          switchTab(tabPracticeBtn, practiceView);
+          loadVocabData(dayWords);
         } else {
           alert('Không tìm thấy từ vựng nào thuộc bài học này!');
         }
