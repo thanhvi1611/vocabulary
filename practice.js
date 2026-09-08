@@ -612,12 +612,24 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.addEventListener('click', (e) => speakWord(e.target.getAttribute('data-word')));
     });
 
+   // --- SỬA LỖI HỌC LẠI BÀI THEO NGÀY ---
     document.querySelectorAll('.btn-play-day').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const day = e.target.getAttribute('data-day');
-        const dayWords = list.filter(item => (item.date || 'Chưa phân ngày') === day);
-        if (tabPracticeBtn) tabPracticeBtn.click();
-        loadVocabData(dayWords);
+        const selectedDay = e.target.getAttribute('data-day');
+        const fullList = getStoredVocab();
+        
+        // Lọc chính xác toàn bộ danh sách từ vựng thuộc ngày đã chọn
+        const dayWords = fullList.filter(item => {
+          const itemDay = item.date || 'Chưa phân ngày';
+          return itemDay === selectedDay;
+        });
+
+        if (dayWords.length > 0) {
+          switchTab(tabPracticeBtn, practiceView); // Chuyển sang Tab Luyện tập
+          loadVocabData(dayWords); // Truyền toàn bộ danh sách từ của ngày đó vào phần Luyện tập
+        } else {
+          alert('Không tìm thấy từ vựng nào thuộc bài học này!');
+        }
       });
     });
 
