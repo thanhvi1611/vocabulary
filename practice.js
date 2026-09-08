@@ -432,50 +432,86 @@ document.addEventListener('DOMContentLoaded', () => {
     window.speechSynthesis.speak(utterance);
   }
 
+  // --- XỬ LÝ KIỂM TRA ĐÁP ÁN VÀ PHÍM TẮT ---
   function checkAnswer() {
+    const item = currentSessionList[currentIndex];
+    const userTyping = typeInput?.value.trim().toLowerCase();
+    const targetWord = item.word.trim().toLowerCase();
+    
+    if (!userTyping) return;
+
+    // Nếu đã trả lời đúng trước đó, nhấn Enter sẽ chuyển sang từ tiếp theo
     if (isAnswered) {
       currentIndex++;
       renderCurrentQuestion();
       return;
     }
 
-    const item = currentSessionList[currentIndex];
-    const userTyping = typeInput?.value.trim().toLowerCase();
-    const targetWord = item.word.trim().toLowerCase();
-    if (!userTyping) return;
-
-    isAnswered = true;
     const isCorrect = (userTyping === targetWord);
 
-    const updatedItem = calculateSRS(item, isCorrect);
-    const fullList = getStoredVocab();
-    const targetIndex = fullList.findIndex(v => v.word.toLowerCase() === item.word.toLowerCase());
-    
-    if (targetIndex !== -1) {
-      fullList[targetIndex] = updatedItem;
-      saveStoredVocab(fullList);
-    }
-
     if (isCorrect) {
+      // TRƯỜNG HỢP GÕ ĐÚNG
+      isAnswered = true; // Đánh dấu đã hoàn thành từ này
+      const updatedItem = calculateSRS(item, true);
+      const fullList = getStoredVocab();
+      const targetIndex = fullList.findIndex(v => v.word.toLowerCase() === item.word.toLowerCase());
+      
+      if (targetIndex !== -1) {
+        fullList[targetIndex] = updatedItem;
+        saveStoredVocab(fullList);
+      }
+
       if (typeInput) typeInput.className = 'quiz-input correct';
       if (hintDiv) {
-        hintDiv.textContent = `🎉 Chính xác! Lần ôn tiếp theo: ${updatedItem.nextReview}`;
+        hintDiv.textContent = `🎉 Chính xác! Nhấn Enter để sang từ tiếp theo. (Lần ôn tới: ${updatedItem.nextReview})`;
         hintDiv.style.color = '#34a853';
       }
       correctCount++;
+      updateDueCountBadge();
+      speakWord(item.word);
     } else {
-      if (typeInput) typeInput.className = 'quiz-input incorrect';
+      // TRƯỜNG HỢP GÕ SAI: Không đổi isAnswered thành true để giữ người dùng ở lại từ này
+      const updatedItem = calculateSRS(item, false);
+      const fullList = getStoredVocab();
+      const targetIndex = fullList.findIndex(v => v.word.toLowerCase() === item.word.toLowerCase());
+      
+      if (targetIndex !== -1) {
+        fullList[targetIndex] = updatedItem;
+        saveStoredVocab(fullList);
+      }
+
+      if (typeInput) {
+        typeInput.className = 'quiz-input incorrect';
+        typeInput.select(); // Bôi đen để người dùng dễ gõ lại
+      }
       if (hintDiv) {
-        hintDiv.innerHTML = `❌ Chưa đúng! Đáp án: <b style="color:#d93025;">${item.word}</b> (Sẽ ôn lại vào ngày mai)`;
+        hintDiv.innerHTML = `❌ Chưa đúng! Đáp án đúng là: <b style="color:#d93025; font-size: 16px;">${item.word}</b>. Hãy gõ lại cho đúng!`;
         hintDiv.style.color = '#ea4335';
       }
       wrongCount++;
+      speakWord(item.word);
     }
-
-    updateDueCountBadge();
-    speakWord(item.word);
   }
 
+  // --- BẮT SỰ KIỆN PHÍM ENTER VÀ CTRL + SPACE ---
+  if (typeInput) {
+    typeInput.addEventListener('keydown', (e) => {
+      // Bấm Ctrl + Space để phát âm
+      if (e.ctrlKey && e.code === 'Space') {
+        e.preventDefault(); // Tránh chèn khoảng trắng vào ô input
+        const currentItem = currentSessionList[currentIndex];
+        if (currentItem) {
+          speakWord(currentItem.word);
+        }
+        return;
+      }
+
+      // Bấm Enter để kiểm tra / chuyển từ
+      if (e.key === 'Enter') {
+        checkAnswer();
+      }
+    });
+  }
   if (typeInput) {
     typeInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') checkAnswer();
