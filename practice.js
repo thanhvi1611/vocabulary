@@ -56,130 +56,7 @@ const ipaData = [
 let currentIpaIndex = 0;
 
 // ==========================================
-// 2. CHUYỂN ĐỔI TAB & ĐIỀU HƯỚNG GIAO DIỆN
-// ==========================================
-document.addEventListener('DOMContentLoaded', () => {
-  const tabAddBtn = document.getElementById('tab-add-btn');
-  const tabPracticeBtn = document.getElementById('tab-practice-btn');
-  const tabManageBtn = document.getElementById('tab-manage-btn');
-  const tabIpaBtn = document.getElementById('tab-ipa-btn');
-
-  const addView = document.getElementById('add-view');
-  const practiceView = document.getElementById('practice-view');
-  const manageView = document.getElementById('manage-view');
-  const ipaView = document.getElementById('ipa-view');
-
-  function switchTab(activeBtn, activeView) {
-    [tabAddBtn, tabPracticeBtn, tabManageBtn, tabIpaBtn].forEach(btn => btn.classList.remove('active'));
-    [addView, practiceView, manageView, ipaView].forEach(view => view.style.display = 'none');
-
-    activeBtn.classList.add('active');
-    activeView.style.display = 'block';
-  }
-
-  tabAddBtn.addEventListener('click', () => switchTab(tabAddBtn, addView));
-  tabPracticeBtn.addEventListener('click', () => switchTab(tabPracticeBtn, practiceView));
-  tabManageBtn.addEventListener('click', () => switchTab(tabManageBtn, manageView));
-  
-  // Xử lý riêng khi bấm Tab Flashcard IPA
-  tabIpaBtn.addEventListener('click', () => {
-    switchTab(tabIpaBtn, ipaView);
-    renderIpaCard(currentIpaIndex);
-  });
-
-  // Khởi tạo điều khiển Flashcard IPA
-  initIpaFlashcard();
-});
-
-// ==========================================
-// 3. LOGIC ĐIỀU KHIỂN FLASHCARD IPA 3D
-// ==========================================
-function initIpaFlashcard() {
-  const ipaCard = document.getElementById('ipa-card');
-  const btnPrev = document.getElementById('ipa-btn-prev');
-  const btnNext = document.getElementById('ipa-btn-next');
-  const btnSound = document.getElementById('ipa-btn-sound');
-
-  // Sự kiện lật thẻ
-  ipaCard.addEventListener('click', (e) => {
-    if (e.target.closest('#ipa-btn-sound')) return;
-    ipaCard.classList.toggle('flipped');
-  });
-
-  // Nút Phát Âm dùng Google TTS
-  btnSound.addEventListener('click', () => {
-    const symbol = ipaData[currentIpaIndex].symbol;
-    speakIpa(symbol);
-  });
-
-  // Chuyển thẻ
-  btnNext.addEventListener('click', () => {
-    if (currentIpaIndex < ipaData.length - 1) {
-      currentIpaIndex++;
-      renderIpaCard(currentIpaIndex);
-    }
-  });
-
-  btnPrev.addEventListener('click', () => {
-    if (currentIpaIndex > 0) {
-      currentIpaIndex--;
-      renderIpaCard(currentIpaIndex);
-    }
-  });
-}
-
-// Hiển thị nội dung thẻ IPA theo index
-function renderIpaCard(index) {
-  const cardData = ipaData[index];
-  const ipaCard = document.getElementById('ipa-card');
-
-  ipaCard.classList.remove('flipped');
-
-  setTimeout(() => {
-    document.getElementById('ipa-front-symbol').textContent = cardData.symbol;
-    document.getElementById('ipa-back-type').textContent = cardData.type;
-    document.getElementById('ipa-back-guide').textContent = cardData.guide;
-    document.getElementById('ipa-counter').textContent = `${index + 1} / ${ipaData.length}`;
-
-    const examplesContainer = document.getElementById('ipa-back-examples');
-    examplesContainer.innerHTML = cardData.examples.map(ex => `
-      <li><b>${ex.w}</b> <span style="color:#1a73e8;">${ex.i}</span></li>
-    `).join('');
-  }, 150);
-}
-
-// Hàm phát âm IPA chuẩn qua Google TTS
-function speakIpa(symbol) {
-  const cleanSymbol = symbol.replace(/\//g, '').trim();
-  
-  // Thử phát âm qua Audio Stream
-  try {
-    const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleanSymbol)}&tl=en&client=tw-ob`;
-    const audio = new Audio(audioUrl);
-    audio.play().catch(() => speakSpeechSynthesis(cleanSymbol));
-  } catch (e) {
-    speakSpeechSynthesis(cleanSymbol);
-  }
-}
-
-function speakSpeechSynthesis(text) {
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    utterance.rate = 0.8;
-    window.speechSynthesis.speak(utterance);
-  }
-}
-
-// ==========================================
-// 4. MÃ NGUỒN CŨ CỦA BÀI LUYỆN GÕ & SỔ TỪ VỰNG
-// (Thầy giữ nguyên các hàm Firebase / Bài luyện gõ / SRS của thầy bên dưới)
-// ==========================================
-
-
-// ==========================================
-// 1. CẤU HÌNH FIREBASE
+// 2. CẤU HÌNH FIREBASE & BIẾN TOÀN CỤC
 // ==========================================
 const firebaseConfig = {
   apiKey: "AIzaSyDBYya0brt3P_vvqU9Qfwub7RRPl7fpDGo",
@@ -192,32 +69,33 @@ const firebaseConfig = {
   measurementId: "G-CD3H20WE4V"
 };
 
-// Khởi tạo Firebase
-if (!firebase.apps.length) {
+if (typeof firebase !== 'undefined' && !firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
-const db = firebase.database();
+const db = (typeof firebase !== 'undefined') ? firebase.database() : null;
 
-// Biến lưu mã đồng bộ
 let SYNC_CODE = localStorage.getItem('user_sync_code') || 'DefaultCode';
-
-// Biến hỗ trợ âm thanh & WakeLock
 let userHasInteracted = false;
 let wakeLock = null;
 
+// ==========================================
+// 3. KHỞI TẠO VÀ XỬ LÝ SỰ KIỆN CHÍNH
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-  // --- ELEMENT REFS ---
-  const syncInput = document.getElementById('sync-code-input');
-  const btnSaveSyncCode = document.getElementById('btn-save-sync-code');
-
+  // ELEMENT REFS - TAB NAVIGATION
   const tabAddBtn = document.getElementById('tab-add-btn');
   const tabPracticeBtn = document.getElementById('tab-practice-btn');
   const tabManageBtn = document.getElementById('tab-manage-btn');
+  const tabIpaBtn = document.getElementById('tab-ipa-btn');
 
   const addView = document.getElementById('add-view');
   const practiceView = document.getElementById('practice-view');
   const manageView = document.getElementById('manage-view');
+  const ipaView = document.getElementById('ipa-view');
 
+  // ELEMENT REFS - FORM & QUIZ
+  const syncInput = document.getElementById('sync-code-input');
+  const btnSaveSyncCode = document.getElementById('btn-save-sync-code');
   const inputWord = document.getElementById('input-word');
   const inputMeaning = document.getElementById('input-meaning');
   const inputPhonetic = document.getElementById('input-phonetic');
@@ -247,24 +125,16 @@ document.addEventListener('DOMContentLoaded', () => {
   let wrongCount = 0;
   let isAnswered = false;
 
-  // Hiển thị mã đồng bộ lên ô nhập
   if (syncInput) syncInput.value = SYNC_CODE;
 
-  // --- WAKE LOCK (GIỮ MÀN HÌNH LUÔN SÁNG) ---
+  // --- WAKE LOCK ---
   async function requestWakeLock() {
     try {
       if ('wakeLock' in navigator) {
         wakeLock = await navigator.wakeLock.request('screen');
-        console.log('💡 Đã kích hoạt giữ màn hình luôn sáng');
-        wakeLock.addEventListener('release', () => {
-          console.log('Màn hình đã hết chế độ giữ sáng');
-        });
       }
-    } catch (err) {
-      console.warn(`Không thể giữ màn hình sáng: ${err.name}, ${err.message}`);
-    }
+    } catch (err) {}
   }
-
   requestWakeLock();
 
   document.addEventListener('visibilitychange', async () => {
@@ -281,22 +151,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function saveStoredVocab(list) {
     localStorage.setItem('vocabList', JSON.stringify(list));
-    if (SYNC_CODE) {
+    if (SYNC_CODE && db) {
       db.ref('users/' + SYNC_CODE).set(list)
-        .then(() => console.log('Đã lưu dữ liệu lên Firebase'))
         .catch(err => console.error('Lỗi lưu Firebase:', err));
     }
   }
 
-  // --- CẬP NHẬT BADGE ĐẾM SỐ TỪ CẦN ÔN (SRS) ---
   function updateDueCountBadge() {
     const fullList = getStoredVocab();
     const todayStr = new Date().toISOString().split('T')[0];
-
-    const dueWords = fullList.filter(item => {
-      if (!item.nextReview) return true;
-      return item.nextReview <= todayStr;
-    });
+    const dueWords = fullList.filter(item => !item.nextReview || item.nextReview <= todayStr);
 
     const badgeEl = document.getElementById('due-count-badge');
     if (badgeEl) {
@@ -310,14 +174,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function listenToCloudData() {
-    if (!SYNC_CODE) return;
+    if (!SYNC_CODE || !db) return;
 
     db.ref('users/' + SYNC_CODE).off();
     db.ref('users/' + SYNC_CODE).on('value', (snapshot) => {
       const cloudData = snapshot.val();
       if (cloudData && Array.isArray(cloudData)) {
         localStorage.setItem('vocabList', JSON.stringify(cloudData));
-
         loadVocabData();
         updateDueCountBadge();
         if (manageView && manageView.style.display !== 'none') {
@@ -339,107 +202,126 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // --- DIEU HUONG TAB ---
+  function switchTab(activeBtn, activeView) {
+    [tabAddBtn, tabPracticeBtn, tabManageBtn, tabIpaBtn].forEach(btn => btn?.classList.remove('active'));
+    [addView, practiceView, manageView, ipaView].forEach(view => { if (view) view.style.display = 'none'; });
+
+    if (activeBtn) activeBtn.classList.add('active');
+    if (activeView) activeView.style.display = 'block';
+  }
+
+  if (tabAddBtn) tabAddBtn.addEventListener('click', () => switchTab(tabAddBtn, addView));
+  if (tabPracticeBtn) tabPracticeBtn.addEventListener('click', () => switchTab(tabPracticeBtn, practiceView));
+  if (tabManageBtn) {
+    tabManageBtn.addEventListener('click', () => {
+      switchTab(tabManageBtn, manageView);
+      renderDayList();
+    });
+  }
+  if (tabIpaBtn) {
+    tabIpaBtn.addEventListener('click', () => {
+      switchTab(tabIpaBtn, ipaView);
+      renderIpaCard(currentIpaIndex);
+    });
+  }
+
+  // --- DỊCH VÀ THÊM TỪ VỰNG ---
   function isVietnamese(text) {
     return /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(text);
   }
 
-  // --- 1. CHUYỂN TAB ---
-  tabAddBtn.addEventListener('click', () => switchTab(tabAddBtn, addView));
-  tabPracticeBtn.addEventListener('click', () => switchTab(tabPracticeBtn, practiceView));
-  tabManageBtn.addEventListener('click', () => {
-    switchTab(tabManageBtn, manageView);
-    renderDayList();
-  });
+  if (btnTranslate) {
+    btnTranslate.addEventListener('click', async () => {
+      const word = inputWord?.value.trim();
+      if (!word) return;
 
-  function switchTab(activeBtn, activeView) {
-    [tabAddBtn, tabPracticeBtn, tabManageBtn].forEach(btn => btn.classList.remove('active'));
-    [addView, practiceView, manageView].forEach(view => view.style.display = 'none');
-    activeBtn.classList.add('active');
-    activeView.style.display = 'block';
+      if (statusDiv) {
+        statusDiv.textContent = '⏳ Đang dịch...';
+        statusDiv.style.color = '#1a73e8';
+      }
+
+      const isVi = isVietnamese(word);
+      const sl = isVi ? 'vi' : 'en';
+      const tl = isVi ? 'en' : 'vi';
+
+      try {
+        const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(word)}`);
+        const data = await res.json();
+        const translatedText = data[0].map(item => item[0]).join('');
+
+        if (isVi) {
+          if (inputWord) inputWord.value = translatedText;
+          if (inputMeaning) inputMeaning.value = word;
+        } else {
+          if (inputMeaning) inputMeaning.value = translatedText;
+        }
+
+        const engWord = isVi ? translatedText : word;
+        if (engWord.split(/\s+/).length === 1 && inputPhonetic) {
+          try {
+            const ipaRes = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(engWord)}`);
+            if (ipaRes.ok) {
+              const ipaDataArr = await ipaRes.json();
+              inputPhonetic.value = ipaDataArr[0]?.phonetic || ipaDataArr[0]?.phonetics?.find(p => p.text)?.text || '';
+            }
+          } catch(e) {}
+        }
+
+        if (statusDiv) {
+          statusDiv.textContent = '✨ Đã dịch xong!';
+          statusDiv.style.color = '#34a853';
+        }
+      } catch (err) {
+        if (statusDiv) {
+          statusDiv.textContent = '❌ Lỗi kết nối dịch thuật!';
+          statusDiv.style.color = '#ea4335';
+        }
+      }
+    });
   }
 
-  // --- 2. DỊCH TỰ ĐỘNG & LẤY IPA ---
-  btnTranslate.addEventListener('click', async () => {
-    const word = inputWord.value.trim();
-    if (!word) return;
-
-    statusDiv.textContent = '⏳ Đang dịch...';
-    statusDiv.style.color = '#1a73e8';
-
-    const isVi = isVietnamese(word);
-    const sl = isVi ? 'vi' : 'en';
-    const tl = isVi ? 'en' : 'vi';
-
-    try {
-      const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(word)}`);
-      const data = await res.json();
-      const translatedText = data[0].map(item => item[0]).join('');
-
-      if (isVi) {
-        inputWord.value = translatedText;
-        inputMeaning.value = word;
-      } else {
-        inputMeaning.value = translatedText;
-      }
-
-      const engWord = isVi ? translatedText : word;
-      if (engWord.split(/\s+/).length === 1) {
-        try {
-          const ipaRes = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(engWord)}`);
-          if (ipaRes.ok) {
-            const ipaData = await ipaRes.json();
-            inputPhonetic.value = ipaData[0]?.phonetic || ipaData[0]?.phonetics?.find(p => p.text)?.text || '';
-          }
-        } catch(e) {}
-      }
-
-      statusDiv.textContent = '✨ Đã dịch xong!';
-      statusDiv.style.color = '#34a853';
-    } catch (err) {
-      statusDiv.textContent = '❌ Lỗi kết nối dịch thuật!';
-      statusDiv.style.color = '#ea4335';
-    }
-  });
-
-  // --- 3. LƯU TỪ VỰNG MỚI (CÓ SRS) ---
-  btnSaveVocab.addEventListener('click', () => {
-    const word = inputWord.value.trim();
-    const meaning = inputMeaning.value.trim();
-    const phonetic = inputPhonetic.value.trim();
-
-    if (!word || !meaning) {
-      statusDiv.textContent = '⚠️ Vui lòng điền đủ Từ và Nghĩa!';
-      statusDiv.style.color = '#ea4335';
-      return;
-    }
-
-    const todayStr = new Date().toISOString().split('T')[0];
-    const list = getStoredVocab();
-
-    list.unshift({
-      word,
-      meaning,
-      phonetic,
-      date: todayStr,
-      interval: 1,
-      repetition: 0,
-      nextReview: todayStr
+  if (inputWord) {
+    inputWord.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && btnTranslate) btnTranslate.click();
     });
+  }
 
-    saveStoredVocab(list);
+  if (btnSaveVocab) {
+    btnSaveVocab.addEventListener('click', () => {
+      const word = inputWord?.value.trim();
+      const meaning = inputMeaning?.value.trim();
+      const phonetic = inputPhonetic?.value.trim();
 
-    statusDiv.textContent = '💾 Đã lưu & đồng bộ từ vựng thành công!';
-    statusDiv.style.color = '#34a853';
+      if (!word || !meaning) {
+        if (statusDiv) {
+          statusDiv.textContent = '⚠️ Vui lòng điền đủ Từ và Nghĩa!';
+          statusDiv.style.color = '#ea4335';
+        }
+        return;
+      }
 
-    inputWord.value = '';
-    inputMeaning.value = '';
-    inputPhonetic.value = '';
+      const todayStr = new Date().toISOString().split('T')[0];
+      const list = getStoredVocab();
 
-    loadVocabData();
-    updateDueCountBadge();
-  });
+      list.unshift({ word, meaning, phonetic, date: todayStr, interval: 1, repetition: 0, nextReview: todayStr });
+      saveStoredVocab(list);
 
-  // --- THUẬT TOÁN SRS (SPACED REPETITION) ---
+      if (statusDiv) {
+        statusDiv.textContent = '💾 Đã lưu & đồng bộ từ vựng thành công!';
+        statusDiv.style.color = '#34a853';
+      }
+
+      if (inputWord) inputWord.value = '';
+      if (inputMeaning) inputMeaning.value = '';
+      if (inputPhonetic) inputPhonetic.value = '';
+
+      loadVocabData();
+      updateDueCountBadge();
+    });
+  }
+
+  // --- LOGIC SRS SPACED REPETITION ---
   function calculateSRS(item, isCorrect) {
     const today = new Date();
     let interval = item.interval || 1;
@@ -447,13 +329,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (isCorrect) {
       repetition += 1;
-      if (repetition === 1) {
-        interval = 1;
-      } else if (repetition === 2) {
-        interval = 6;
-      } else {
-        interval = Math.round(interval * 2.2);
-      }
+      if (repetition === 1) interval = 1;
+      else if (repetition === 2) interval = 6;
+      else interval = Math.round(interval * 2.2);
     } else {
       repetition = 0;
       interval = 1;
@@ -461,40 +339,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const nextDate = new Date(today);
     nextDate.setDate(today.getDate() + interval);
-    const nextReviewStr = nextDate.toISOString().split('T')[0];
-
-    return {
-      ...item,
-      interval,
-      repetition,
-      nextReview: nextReviewStr
-    };
+    return { ...item, interval, repetition, nextReview: nextDate.toISOString().split('T')[0] };
   }
 
-  // --- 4. LUYỆN GÕ & PHÁT ÂM ---
+  // --- KHỦNG ÔN TẬP LUYỆN GÕ ---
   function loadVocabData(customList = null) {
     const fullList = getStoredVocab();
     const todayStr = new Date().toISOString().split('T')[0];
 
-    if (customList) {
-      currentSessionList = customList;
-    } else {
-      currentSessionList = fullList.filter(item => {
-        if (!item.nextReview) return true;
-        return item.nextReview <= todayStr;
-      });
-    }
-
+    currentSessionList = customList || fullList.filter(item => !item.nextReview || item.nextReview <= todayStr);
     currentIndex = 0; correctCount = 0; wrongCount = 0;
+
+    if (!quizArea || !completedArea) return;
 
     if (currentSessionList.length === 0) {
       quizArea.style.display = 'none';
       completedArea.style.display = 'block';
-      completeDetail.innerHTML = '🎉 <b>Tuyệt vời!</b> Thầy đã hoàn thành hết các từ cần ôn tập trong ngày.';
+      if (completeDetail) completeDetail.innerHTML = '🎉 <b>Tuyệt vời!</b> Thầy đã hoàn thành hết các từ cần ôn tập trong ngày.';
       return;
     }
 
-    typeInput.disabled = false;
+    if (typeInput) typeInput.disabled = false;
     quizArea.style.display = 'block';
     completedArea.style.display = 'none';
     renderCurrentQuestion();
@@ -504,44 +369,47 @@ document.addEventListener('DOMContentLoaded', () => {
     if (currentIndex >= currentSessionList.length) {
       quizArea.style.display = 'none';
       completedArea.style.display = 'block';
-      completeDetail.innerHTML = `Hoàn thành <b>${currentSessionList.length}</b> từ.<br>Đúng: <span style="color:#34a853; font-weight:bold;">${correctCount}</span> | Sai: <span style="color:#ea4335; font-weight:bold;">${wrongCount}</span>`;
+      if (completeDetail) {
+        completeDetail.innerHTML = `Hoàn thành <b>${currentSessionList.length}</b> từ.<br>Đúng: <span style="color:#34a853; font-weight:bold;">${correctCount}</span> | Sai: <span style="color:#ea4335; font-weight:bold;">${wrongCount}</span>`;
+      }
       return;
     }
 
     const item = currentSessionList[currentIndex];
     isAnswered = false;
 
-    typeBadge.textContent = item.date ? `Ngày tạo: ${item.date}` : 'Từ mới';
-    progressText.textContent = `${currentIndex + 1} / ${currentSessionList.length} từ`;
-    meaningDiv.textContent = item.meaning;
-    phoneticDiv.textContent = item.phonetic || '';
-    typeInput.value = '';
-    typeInput.className = 'quiz-input';
-    typeInput.focus();
-    hintDiv.textContent = 'Nhấn Enter để kiểm tra';
-    hintDiv.style.color = '#777';
+    if (typeBadge) typeBadge.textContent = item.date ? `Ngày tạo: ${item.date}` : 'Từ mới';
+    if (progressText) progressText.textContent = `${currentIndex + 1} / ${currentSessionList.length} từ`;
+    if (meaningDiv) meaningDiv.textContent = item.meaning;
+    if (phoneticDiv) phoneticDiv.textContent = item.phonetic || '';
+    if (typeInput) {
+      typeInput.value = '';
+      typeInput.className = 'quiz-input';
+      typeInput.focus();
+    }
+    if (hintDiv) {
+      hintDiv.textContent = 'Nhấn Enter để kiểm tra';
+      hintDiv.style.color = '#777';
+    }
 
-    if (autoAudioToggle.checked) speakWord(item.word);
+    if (autoAudioToggle?.checked) speakWord(item.word);
   }
 
-  // --- MỞ KHÓA & PHÁT ÂM THANH ---
+  // --- ÂM THANH & PHÁT ÂM ---
   const unlockAudio = () => {
     userHasInteracted = true;
     const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
     silentAudio.play().catch(() => {});
-    
     document.removeEventListener('click', unlockAudio);
     document.removeEventListener('keydown', unlockAudio);
     document.removeEventListener('touchstart', unlockAudio);
   };
-
   document.addEventListener('click', unlockAudio);
   document.addEventListener('keydown', unlockAudio);
   document.addEventListener('touchstart', unlockAudio);
 
   function speakWord(text) {
     if (!text) return;
-
     const rate = parseFloat(speechRateSelect?.value) || 1.0;
 
     if (!userHasInteracted) {
@@ -552,24 +420,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const isSlow = rate < 0.9;
     const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=en&client=tw-ob${isSlow ? '&ttsspeed=0.24' : ''}`;
     const audio = new Audio(audioUrl);
-
-    audio.play().catch(() => {
-      speakWithSpeechSynthesis(text, rate);
-    });
+    audio.play().catch(() => speakWithSpeechSynthesis(text, rate));
   }
 
   function speakWithSpeechSynthesis(text, rate) {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
-
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'en-US';
     utterance.rate = rate;
-
-    const voices = window.speechSynthesis.getVoices();
-    const bestVoice = voices.find(v => v.lang.includes('en') && (v.name.includes('Google') || v.name.includes('Natural')));
-    if (bestVoice) utterance.voice = bestVoice;
-
     window.speechSynthesis.speak(utterance);
   }
 
@@ -581,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const item = currentSessionList[currentIndex];
-    const userTyping = typeInput.value.trim().toLowerCase();
+    const userTyping = typeInput?.value.trim().toLowerCase();
     const targetWord = item.word.trim().toLowerCase();
     if (!userTyping) return;
 
@@ -589,36 +448,51 @@ document.addEventListener('DOMContentLoaded', () => {
     const isCorrect = (userTyping === targetWord);
 
     const updatedItem = calculateSRS(item, isCorrect);
-    
     const fullList = getStoredVocab();
     const targetIndex = fullList.findIndex(v => v.word.toLowerCase() === item.word.toLowerCase());
+    
     if (targetIndex !== -1) {
       fullList[targetIndex] = updatedItem;
       saveStoredVocab(fullList);
     }
 
     if (isCorrect) {
-      typeInput.className = 'quiz-input correct';
-      hintDiv.textContent = `🎉 Chính xác! Lần ôn tiếp theo: ${updatedItem.nextReview}`;
-      hintDiv.style.color = '#34a853';
+      if (typeInput) typeInput.className = 'quiz-input correct';
+      if (hintDiv) {
+        hintDiv.textContent = `🎉 Chính xác! Lần ôn tiếp theo: ${updatedItem.nextReview}`;
+        hintDiv.style.color = '#34a853';
+      }
       correctCount++;
     } else {
-      typeInput.className = 'quiz-input incorrect';
-      hintDiv.innerHTML = `❌ Chưa đúng! Đáp án: <b style="color:#d93025;">${item.word}</b> (Sẽ ôn lại vào ngày mai)`;
-      hintDiv.style.color = '#ea4335';
+      if (typeInput) typeInput.className = 'quiz-input incorrect';
+      if (hintDiv) {
+        hintDiv.innerHTML = `❌ Chưa đúng! Đáp án: <b style="color:#d93025;">${item.word}</b> (Sẽ ôn lại vào ngày mai)`;
+        hintDiv.style.color = '#ea4335';
+      }
       wrongCount++;
     }
-    
+
     updateDueCountBadge();
     speakWord(item.word);
   }
 
-  // --- 5. QUẢN LÝ BÀI HỌC THEO NGÀY ---
+  if (typeInput) {
+    typeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') checkAnswer();
+    });
+  }
+
+  if (speakBtn) speakBtn.addEventListener('click', () => speakWord(currentSessionList[currentIndex]?.word));
+  if (restartBtn) restartBtn.addEventListener('click', () => loadVocabData(currentSessionList));
+
+  // --- QUẢN LÝ DANH SÁCH BÀI HỌC ---
   function renderDayList() {
     const list = getStoredVocab();
+    if (!dayListContainer) return;
+
     dayListContainer.innerHTML = '';
     if (list.length === 0) {
-      dayListContainer.innerHTML = '<p style="color:#666;">Chưa có dữ liệu.</p>';
+      dayListContainer.innerHTML = '<p style="color:#666;">Chưa có dữ liệu từ vựng.</p>';
       return;
     }
 
@@ -657,7 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }).join('');
 
       card.innerHTML = `
-        <div class="day-header">
+        <div class="day-header" style="margin-bottom:8px;">
           <span style="font-weight:bold; color:#1a73e8;">📅 ${day} (${dayWords.length} từ)</span>
           <button class="btn-sm btn-play-sm btn-play-day" data-day="${day}">▶ Học lại bài này</button>
         </div>
@@ -667,17 +541,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('.btn-speak-item').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const word = e.target.getAttribute('data-word');
-        speakWord(word);
-      });
+      btn.addEventListener('click', (e) => speakWord(e.target.getAttribute('data-word')));
     });
 
     document.querySelectorAll('.btn-play-day').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const day = e.target.getAttribute('data-day');
         const dayWords = list.filter(item => (item.date || 'Chưa phân ngày') === day);
-        tabPracticeBtn.click();
+        if (tabPracticeBtn) tabPracticeBtn.click();
         loadVocabData(dayWords);
       });
     });
@@ -685,14 +556,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.btn-edit-meaning').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = e.target.getAttribute('data-index');
-        document.getElementById(`edit-box-${idx}`).style.display = 'flex';
+        const editBox = document.getElementById(`edit-box-${idx}`);
+        if (editBox) editBox.style.display = 'flex';
       });
     });
 
     document.querySelectorAll('.btn-save-meaning').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt(e.target.getAttribute('data-index'));
-        const newMeaning = document.getElementById(`input-meaning-${idx}`).value.trim();
+        const inputEl = document.getElementById(`input-meaning-${idx}`);
+        const newMeaning = inputEl ? inputEl.value.trim() : '';
         if (!newMeaning) return;
         const vocabList = getStoredVocab();
         vocabList[idx].meaning = newMeaning;
@@ -708,20 +581,107 @@ document.addEventListener('DOMContentLoaded', () => {
           const vocabList = getStoredVocab();
           vocabList.splice(idx, 1);
           saveStoredVocab(vocabList);
-          updateDueCountBadge();
           renderDayList();
+          updateDueCountBadge();
         }
       });
     });
   }
 
-  // --- LẮNG NGHE SỰ KIỆN GIAO DIỆN ---
-  speakBtn.addEventListener('click', () => speakWord(currentSessionList[currentIndex]?.word));
-  restartBtn.addEventListener('click', () => loadVocabData(currentSessionList));
-  typeInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer(); });
+  // --- KÍCH HOẠT FLASHCARD IPA ---
+  initIpaFlashcard();
 
-  // Khởi chạy ứng dụng
+  // --- KHỞI CHẠY LẦN ĐẦU ---
+  listenToCloudData();
   loadVocabData();
   updateDueCountBadge();
-  listenToCloudData();
 });
+
+// ==========================================
+// 4. LOGIC ĐIỀU KHIỂN FLASHCARD IPA 3D
+// ==========================================
+function initIpaFlashcard() {
+  const ipaCard = document.getElementById('ipa-card');
+  const btnPrev = document.getElementById('ipa-btn-prev');
+  const btnNext = document.getElementById('ipa-btn-next');
+  const btnSound = document.getElementById('ipa-btn-sound');
+
+  if (ipaCard) {
+    ipaCard.addEventListener('click', (e) => {
+      if (e.target.closest('#ipa-btn-sound')) return;
+      ipaCard.classList.toggle('flipped');
+    });
+  }
+
+  if (btnSound) {
+    btnSound.addEventListener('click', () => {
+      speakIpa(ipaData[currentIpaIndex].symbol);
+    });
+  }
+
+  if (btnNext) {
+    btnNext.addEventListener('click', () => {
+      if (currentIpaIndex < ipaData.length - 1) {
+        currentIpaIndex++;
+        renderIpaCard(currentIpaIndex);
+      }
+    });
+  }
+
+  if (btnPrev) {
+    btnPrev.addEventListener('click', () => {
+      if (currentIpaIndex > 0) {
+        currentIpaIndex--;
+        renderIpaCard(currentIpaIndex);
+      }
+    });
+  }
+}
+
+function renderIpaCard(index) {
+  const cardData = ipaData[index];
+  const ipaCard = document.getElementById('ipa-card');
+  if (!ipaCard || !cardData) return;
+
+  ipaCard.classList.remove('flipped');
+
+  setTimeout(() => {
+    const frontSymbol = document.getElementById('ipa-front-symbol');
+    const backType = document.getElementById('ipa-back-type');
+    const backGuide = document.getElementById('ipa-back-guide');
+    const counter = document.getElementById('ipa-counter');
+    const examplesContainer = document.getElementById('ipa-back-examples');
+
+    if (frontSymbol) frontSymbol.textContent = cardData.symbol;
+    if (backType) backType.textContent = cardData.type;
+    if (backGuide) backGuide.textContent = cardData.guide;
+    if (counter) counter.textContent = `${index + 1} / ${ipaData.length}`;
+
+    if (examplesContainer) {
+      examplesContainer.innerHTML = cardData.examples.map(ex => `
+        <li><b>${ex.w}</b> <span style="color:#1a73e8;">${ex.i}</span></li>
+      `).join('');
+    }
+  }, 150);
+}
+
+function speakIpa(symbol) {
+  const cleanSymbol = symbol.replace(/\//g, '').trim();
+  try {
+    const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(cleanSymbol)}&tl=en&client=tw-ob`;
+    const audio = new Audio(audioUrl);
+    audio.play().catch(() => speakSpeechSynthesis(cleanSymbol));
+  } catch (e) {
+    speakSpeechSynthesis(cleanSymbol);
+  }
+}
+
+function speakSpeechSynthesis(text) {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.8;
+    window.speechSynthesis.speak(utterance);
+  }
+}
