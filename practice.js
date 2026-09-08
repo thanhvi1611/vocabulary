@@ -600,20 +600,29 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.btn-speak-item').forEach(btn => {
       btn.addEventListener('click', (e) => speakWord(e.target.getAttribute('data-word')));
     });
-
+// --- CẬP NHẬT SỰ KIỆN HỌC LẠI BÀI THEO NGÀY (FIX TRỰC TIẾP LỖI NHẢY TAB RESET 1 TỪ) ---
     document.querySelectorAll('.btn-play-day').forEach(btn => {
       btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation(); // Ngăn sự kiện lan ra ngoài làm kích hoạt lại hàm load mặc định
+
         const selectedDay = e.target.getAttribute('data-day');
         const fullList = getStoredVocab();
         
+        // Lọc toàn bộ danh sách từ vựng thuộc ngày đã chọn
         const dayWords = fullList.filter(item => {
           const itemDay = item.date || 'Chưa phân ngày';
           return itemDay === selectedDay;
         });
 
         if (dayWords.length > 0) {
+          // 1. Chuyển tab trước
           switchTab(tabPracticeBtn, practiceView);
-          loadVocabData(dayWords);
+          
+          // 2. Nạp dữ liệu danh sách bài học ngay sau đó để không bị sự kiện chuyển tab ghi đè
+          setTimeout(() => {
+            loadVocabData(dayWords);
+          }, 50);
         } else {
           alert('Không tìm thấy từ vựng nào thuộc bài học này!');
         }
