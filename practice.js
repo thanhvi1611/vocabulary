@@ -99,6 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputWord = document.getElementById('input-word');
   const inputMeaning = document.getElementById('input-meaning');
   const inputPhonetic = document.getElementById('input-phonetic');
+  const inputExample = document.getElementById('input-example');
   const btnTranslate = document.getElementById('btn-translate');
   const btnSaveVocab = document.getElementById('btn-save-vocab');
   const statusDiv = document.getElementById('status');
@@ -184,7 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('vocabList', JSON.stringify(cloudData));
         updateDueCountBadge();
 
-        // Chỉ tự động tải lại phiên học mặc định nếu người dùng KHÔNG ở trong bài học tùy chỉnh theo ngày
         if (!isCustomSession) {
           loadVocabData();
         }
@@ -256,12 +256,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         const translatedText = data[0].map(item => item[0]).join('');
 
-        // Lấy ví dụ nếu có
+        // Lấy câu ví dụ nếu có
         let exampleText = '';
         if (data[13] && Array.isArray(data[13][0])) {
           const exList = data[13][0].slice(0, 2).map(ex => ex[0].replace(/<\/?b>/g, ''));
           if (exList.length > 0) {
-            exampleText = `\n(Ex: ${exList.join('; ')})`;
+            exampleText = exList[0];
           }
         }
 
@@ -269,7 +269,8 @@ document.addEventListener('DOMContentLoaded', () => {
           if (inputWord) inputWord.value = translatedText;
           if (inputMeaning) inputMeaning.value = word;
         } else {
-          if (inputMeaning) inputMeaning.value = translatedText + exampleText;
+          if (inputMeaning) inputMeaning.value = translatedText;
+          if (inputExample) inputExample.value = exampleText;
         }
 
         const engWord = isVi ? translatedText : word;
@@ -306,8 +307,8 @@ document.addEventListener('DOMContentLoaded', () => {
     btnSaveVocab.addEventListener('click', () => {
       const word = inputWord?.value.trim();
       const meaning = inputMeaning?.value.trim();
-      const phonetic = inputPhonetic?.value.trim();
-      const example = inputExample?.value.trim() || ''; // Nếu có ô nhập ví dụ
+      const phonetic = inputPhonetic?.value.trim() || '';
+      const example = inputExample?.value.trim() || '';
 
       if (!word || !meaning) {
         if (statusDiv) {
@@ -320,18 +321,16 @@ document.addEventListener('DOMContentLoaded', () => {
       const todayStr = new Date().toISOString().split('T')[0];
       const list = getStoredVocab();
 
-      // Bổ sung thuộc tính example vào object từ vựng
       list.unshift({ 
         word, 
         meaning, 
         phonetic, 
-        example, // <--- LƯU TRƯỜNG EXAMPLE
+        example,
         date: todayStr, 
         interval: 1, 
         repetition: 0, 
         nextReview: todayStr 
       });
-      
       saveStoredVocab(list);
 
       if (statusDiv) {
@@ -415,7 +414,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (typeBadge) typeBadge.textContent = item.date ? `Ngày tạo: ${item.date}` : 'Từ mới';
     if (progressText) progressText.textContent = `${currentIndex + 1} / ${currentSessionList.length} từ`;
-    if (meaningDiv) meaningDiv.textContent = item.meaning;
+    
+    // Hiển thị Nghĩa và Ví dụ minh họa nếu có
+    if (meaningDiv) {
+      let html = item.meaning;
+      if (item.example) {
+        html += `<div style="font-size: 13px; color: #5f6368; font-style: italic; margin-top: 6px;">💡 Ex: ${item.example}</div>`;
+      }
+      meaningDiv.innerHTML = html;
+    }
+
     if (phoneticDiv) phoneticDiv.textContent = item.phonetic || '';
     if (typeInput) {
       typeInput.value = '';
@@ -564,8 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (speakBtn) speakBtn.addEventListener('click', () => speakWord(currentSessionList[currentIndex]?.word));
   if (restartBtn) restartBtn.addEventListener('click', () => loadVocabData(currentSessionList));
 
-  // --- QUẢN LÝ DANH SÁCH BÀI HỌC ---
-  // --- QUẢN LÝ DANH SÁCH BÀI HỌC (ĐÃ BỔ SUNG SỬA TỪ & IPA) ---
+  // --- QUẢN LÝ DANH SÁCH BÀI HỌC (SỬA ĐẦY ĐỦ: TỪ, IPA, NGHĨA, VÍ DỤ) ---
   function renderDayList() {
     const list = getStoredVocab();
     if (!dayListContainer) return;
@@ -604,7 +611,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <button class="btn-delete-word" data-index="${idx}" style="background:none; border:none; cursor:pointer; color:#ea4335; font-size:12px;">🗑️ Xóa</button>
             </div>
             
-            <!-- KHUNG CHỈNH SỬA TỔNG HỢP (TỪ - IPA - NGHĨA - VÍ DỤ) -->
+            <!-- KHUNG CHỈNH SỬA TỔNG HỢP -->
             <div id="edit-box-${idx}" style="display:none; width:100%; margin-top:8px; gap:6px; flex-direction:column; background:#f8f9fa; padding:8px; border-radius:6px; border:1px solid #dadce0;">
               <div style="display:flex; gap:6px;">
                 <input type="text" id="input-edit-word-${idx}" value="${item.word}" placeholder="Từ tiếng Anh" style="flex:1; padding:4px 6px; border:1px solid #ccc; border-radius:4px; font-weight:bold;" />
@@ -632,23 +639,26 @@ document.addEventListener('DOMContentLoaded', () => {
       dayListContainer.appendChild(card);
     });
 
-    // Phát âm từ vựng
+    // Phát âm từ vựng trong danh sách
     document.querySelectorAll('.btn-speak-item').forEach(btn => {
       btn.addEventListener('click', (e) => speakWord(e.target.getAttribute('data-word')));
     });
 
-    // Học lại theo ngày
+    // Học lại bài theo ngày
     document.querySelectorAll('.btn-play-day').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+
         const selectedDay = e.target.getAttribute('data-day');
         const fullList = getStoredVocab();
         const dayWords = fullList.filter(item => (item.date || 'Chưa phân ngày') === selectedDay);
 
         if (dayWords.length > 0) {
           switchTab(tabPracticeBtn, practiceView);
-          setTimeout(() => loadVocabData(dayWords), 50);
+          setTimeout(() => {
+            loadVocabData(dayWords);
+          }, 50);
         } else {
           alert('Không tìm thấy từ vựng nào thuộc bài học này!');
         }
@@ -673,8 +683,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // Lưu từ vựng sau khi chỉnh sửa (Từ, IPA, Nghĩa)
-   // Lưu từ vựng sau khi chỉnh sửa
+    // Lưu từ vựng sau khi chỉnh sửa
     document.querySelectorAll('.btn-save-word-item').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt(e.target.getAttribute('data-index'));
@@ -683,7 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const newMeaning = document.getElementById(`input-edit-meaning-${idx}`)?.value.trim();
         const newExample = document.getElementById(`input-edit-example-${idx}`)?.value.trim();
 
-        if (!newWord || !meaning) {
+        if (!newWord || !newMeaning) {
           alert('Vui lòng điền đủ Từ tiếng Anh và Nghĩa!');
           return;
         }
@@ -692,7 +701,7 @@ document.addEventListener('DOMContentLoaded', () => {
         vocabList[idx].word = newWord;
         vocabList[idx].phonetic = newPhonetic;
         vocabList[idx].meaning = newMeaning;
-        vocabList[idx].example = newExample; // <--- CẬP NHẬT VÍ DỤ MỚI
+        vocabList[idx].example = newExample;
 
         saveStoredVocab(vocabList);
         renderDayList();
