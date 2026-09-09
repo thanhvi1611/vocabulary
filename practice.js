@@ -307,6 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const word = inputWord?.value.trim();
       const meaning = inputMeaning?.value.trim();
       const phonetic = inputPhonetic?.value.trim();
+      const example = inputExample?.value.trim() || ''; // Nếu có ô nhập ví dụ
 
       if (!word || !meaning) {
         if (statusDiv) {
@@ -319,7 +320,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const todayStr = new Date().toISOString().split('T')[0];
       const list = getStoredVocab();
 
-      list.unshift({ word, meaning, phonetic, date: todayStr, interval: 1, repetition: 0, nextReview: todayStr });
+      // Bổ sung thuộc tính example vào object từ vựng
+      list.unshift({ 
+        word, 
+        meaning, 
+        phonetic, 
+        example, // <--- LƯU TRƯỜNG EXAMPLE
+        date: todayStr, 
+        interval: 1, 
+        repetition: 0, 
+        nextReview: todayStr 
+      });
+      
       saveStoredVocab(list);
 
       if (statusDiv) {
@@ -330,6 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (inputWord) inputWord.value = '';
       if (inputMeaning) inputMeaning.value = '';
       if (inputPhonetic) inputPhonetic.value = '';
+      if (inputExample) inputExample.value = '';
 
       loadVocabData();
       updateDueCountBadge();
@@ -579,25 +592,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const idx = item.originalIndex;
         return `
           <div style="border-bottom:1px dashed #eee; padding:8px 0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-            <div>
+            <div style="flex: 1;">
               <strong style="color:#1a73e8; font-size: 15px;">${item.word}</strong>
               <button class="btn-speak-item" data-word="${item.word}" style="background:none; border:none; cursor:pointer; font-size:16px; margin-left:4px;" title="Phát âm">🔊</button>
               ${item.phonetic ? `<span style="color:#666; font-size:12px; margin-left:4px;">${item.phonetic}</span>` : ''}
               <span style="color:#333; margin-left:8px;">👉 ${item.meaning}</span>
+              ${item.example ? `<div style="color:#5f6368; font-size:12px; font-style:italic; margin-top:2px; margin-left:4px;">💡 Ex: ${item.example}</div>` : ''}
             </div>
             <div>
               <button class="btn-edit-word-item" data-index="${idx}" style="background:none; border:none; cursor:pointer; color:#1a73e8; font-size:12px;">✏️ Sửa</button>
               <button class="btn-delete-word" data-index="${idx}" style="background:none; border:none; cursor:pointer; color:#ea4335; font-size:12px;">🗑️ Xóa</button>
             </div>
             
-            <!-- Ô SỬA TỪ VỰNG FULL: TIẾNG ANH - IPA - NGHĨA -->
+            <!-- KHUNG CHỈNH SỬA TỔNG HỢP (TỪ - IPA - NGHĨA - VÍ DỤ) -->
             <div id="edit-box-${idx}" style="display:none; width:100%; margin-top:8px; gap:6px; flex-direction:column; background:#f8f9fa; padding:8px; border-radius:6px; border:1px solid #dadce0;">
               <div style="display:flex; gap:6px;">
                 <input type="text" id="input-edit-word-${idx}" value="${item.word}" placeholder="Từ tiếng Anh" style="flex:1; padding:4px 6px; border:1px solid #ccc; border-radius:4px; font-weight:bold;" />
                 <input type="text" id="input-edit-phonetic-${idx}" value="${item.phonetic || ''}" placeholder="Phiên âm IPA" style="flex:1; padding:4px 6px; border:1px solid #ccc; border-radius:4px; color:#1a73e8;" />
               </div>
-              <div style="display:flex; gap:6px; margin-top:4px;">
-                <input type="text" id="input-edit-meaning-${idx}" value="${item.meaning}" placeholder="Nghĩa tiếng Việt" style="flex:2; padding:4px 6px; border:1px solid #ccc; border-radius:4px;" />
+              <input type="text" id="input-edit-meaning-${idx}" value="${item.meaning}" placeholder="Nghĩa tiếng Việt" style="width:100%; padding:4px 6px; border:1px solid #ccc; border-radius:4px;" />
+              <input type="text" id="input-edit-example-${idx}" value="${item.example || ''}" placeholder="Câu ví dụ (Example)" style="width:100%; padding:4px 6px; border:1px solid #ccc; border-radius:4px; font-style:italic;" />
+              
+              <div style="display:flex; gap:6px; justify-content:flex-end; margin-top:4px;">
                 <button class="btn-save-word-item" data-index="${idx}" style="background:#34a853; color:white; border:none; padding:4px 12px; border-radius:4px; font-weight:bold; cursor:pointer;">💾 Lưu</button>
                 <button class="btn-cancel-edit-item" data-index="${idx}" style="background:#dadce0; color:#3c4043; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;">Hủy</button>
               </div>
@@ -658,14 +674,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Lưu từ vựng sau khi chỉnh sửa (Từ, IPA, Nghĩa)
+   // Lưu từ vựng sau khi chỉnh sửa
     document.querySelectorAll('.btn-save-word-item').forEach(btn => {
       btn.addEventListener('click', (e) => {
         const idx = parseInt(e.target.getAttribute('data-index'));
         const newWord = document.getElementById(`input-edit-word-${idx}`)?.value.trim();
         const newPhonetic = document.getElementById(`input-edit-phonetic-${idx}`)?.value.trim();
         const newMeaning = document.getElementById(`input-edit-meaning-${idx}`)?.value.trim();
+        const newExample = document.getElementById(`input-edit-example-${idx}`)?.value.trim();
 
-        if (!newWord || !newMeaning) {
+        if (!newWord || !meaning) {
           alert('Vui lòng điền đủ Từ tiếng Anh và Nghĩa!');
           return;
         }
@@ -674,6 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
         vocabList[idx].word = newWord;
         vocabList[idx].phonetic = newPhonetic;
         vocabList[idx].meaning = newMeaning;
+        vocabList[idx].example = newExample; // <--- CẬP NHẬT VÍ DỤ MỚI
 
         saveStoredVocab(vocabList);
         renderDayList();
