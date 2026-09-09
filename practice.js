@@ -252,15 +252,24 @@ document.addEventListener('DOMContentLoaded', () => {
       const tl = isVi ? 'en' : 'vi';
 
       try {
-        const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(word)}`);
+        const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&dt=bd&dt=ex&q=${encodeURIComponent(word)}`);
         const data = await res.json();
         const translatedText = data[0].map(item => item[0]).join('');
+
+        // Lấy ví dụ nếu có
+        let exampleText = '';
+        if (data[13] && Array.isArray(data[13][0])) {
+          const exList = data[13][0].slice(0, 2).map(ex => ex[0].replace(/<\/?b>/g, ''));
+          if (exList.length > 0) {
+            exampleText = `\n(Ex: ${exList.join('; ')})`;
+          }
+        }
 
         if (isVi) {
           if (inputWord) inputWord.value = translatedText;
           if (inputMeaning) inputMeaning.value = word;
         } else {
-          if (inputMeaning) inputMeaning.value = translatedText;
+          if (inputMeaning) inputMeaning.value = translatedText + exampleText;
         }
 
         const engWord = isVi ? translatedText : word;
