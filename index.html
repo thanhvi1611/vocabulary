@@ -126,6 +126,56 @@
       </button>
       <button id="tab-manage-btn" class="tab-btn">📅 Bài Học</button>
       <button id="tab-ipa-btn" class="tab-btn">🎴 Flashcard IPA</button>
+
+      <!-- KHU VỰC LUYỆN ĐỌC LẶP LẠI (REPEAT SPEECH) -->
+<div class="practice-card" style="background: #ffffff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 500px; margin: 20px auto; font-family: system-ui, -apple-system, sans-serif;">
+  <h3 style="margin-top: 0; color: #1a73e8; display: flex; align-items: center; gap: 8px;">
+    🎧 Luyện Nghe & Đọc Lặp Lại
+  </h3>
+
+  <!-- Ô nhập câu thoại -->
+  <div style="margin-bottom: 12px;">
+    <label style="display: block; font-size: 13px; font-weight: 600; color: #5f6368; margin-bottom: 4px;">Nội dung câu thoại:</label>
+    <textarea id="repeatText" style="width: 100%; height: 80px; border: 1px solid #dadce0; border-radius: 8px; padding: 10px; font-size: 15px; box-sizing: border-box; resize: vertical;" placeholder="Nhập câu tiếng Anh muốn luyện đọc...">Listen and repeat after me every day to improve your fluency.</textarea>
+  </div>
+
+  <!-- Chọn khoảng nghỉ & Hẹn giờ -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+    <div>
+      <label style="display: block; font-size: 12px; color: #5f6368; margin-bottom: 4px;">Nghỉ giữa các lần:</label>
+      <select id="pauseInterval" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #dadce0; font-size: 14px;">
+        <option value="1">1 giây</option>
+        <option value="2" selected>2 giây</option>
+        <option value="3">3 giây</option>
+        <option value="5">5 giây</option>
+      </select>
+    </div>
+    <div>
+      <label style="display: block; font-size: 12px; color: #5f6368; margin-bottom: 4px;">Hẹn giờ tự dừng:</label>
+      <select id="timerSelect" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #dadce0; font-size: 14px;">
+        <option value="5">5 phút</option>
+        <option value="10" selected>10 phút</option>
+        <option value="15">15 phút</option>
+        <option value="0">Không giới hạn</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Hiển thị đếm ngược -->
+  <div id="timerStatus" style="display: none; text-align: center; margin-bottom: 12px; font-weight: bold; color: #d93025; background: #fce8e6; padding: 6px; border-radius: 6px; font-size: 13px;">
+    ⏱️ Thời gian còn lại: <span id="countdownDisplay">10:00</span>
+  </div>
+
+  <!-- Các nút bấm điều khiển -->
+  <div style="display: flex; gap: 10px;">
+    <button id="btnStartRepeat" style="flex: 1; background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px;">
+      ▶ Bắt đầu phát
+    </button>
+    <button id="btnStopRepeat" disabled style="flex: 1; background: #dadce0; color: #5f6368; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 15px;">
+      ⏹ Dừng lại
+    </button>
+  </div>
+</div>
     </div>
 
     <!-- TAB 1: THÊM TỪ VỰNG & DỊCH NHANH -->

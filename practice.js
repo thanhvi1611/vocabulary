@@ -820,3 +820,130 @@ function speakSpeechSynthesis(text) {
     window.speechSynthesis.speak(utterance);
   }
 }
+  (function() {
+    let isPlaying = false;
+    let audioPlayer = new Audio();
+    let loopTimeout = null;
+    let countdownInterval = null;
+    let remainingSeconds = 0;
+
+    const repeatText = document.getElementById('repeatText');
+    const pauseInterval = document.getElementById('pauseInterval');
+    const timerSelect = document.getElementById('timerSelect');
+    const timerStatus = document.getElementById('timerStatus');
+    const countdownDisplay = document.getElementById('countdownDisplay');
+    const btnStart = document.getElementById('btnStartRepeat');
+    const btnStop = document.getElementById('btnStopRepeat');
+
+    // 1. Hàm phát một câu từ Google TTS
+    function playTTS(text) {
+      if (!isPlaying) return;
+
+      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=en&client=tw-ob`;
+      audioPlayer.src = ttsUrl;
+
+      // Kích hoạt Media Session để chạy ngầm trên điện thoại / Lockscreen
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: 'Luyện đọc lặp lại',
+          artist: 'Đi cùng con',
+          album: text
+        });
+        navigator.mediaSession.setActionHandler('pause', stopLoop);
+        navigator.mediaSession.setActionHandler('stop', stopLoop);
+      }
+
+      audioPlayer.play().catch(err => {
+        console.warn("Lỗi tự động phát âm thanh:", err);
+      });
+    }
+
+    // 2. Sự kiện khi đọc xong một lượt -> Nghỉ rồi đọc tiếp
+    audioPlayer.onended = () => {
+      if (isPlaying) {
+        const pauseTime = parseInt(pauseInterval.value, 10) * 1000;
+        loopTimeout = setTimeout(() => {
+          playTTS(repeatText.value.trim());
+        }, pauseTime);
+      }
+    };
+
+    // 3. Xử lý Đếm ngược Hẹn giờ
+    function startCountdown(minutes) {
+      if (minutes === 0) {
+        timerStatus.style.display = 'none';
+        return;
+      }
+
+      remainingSeconds = minutes * 60;
+      timerStatus.style.display = 'block';
+      updateCountdownUI();
+
+      countdownInterval = setInterval(() => {
+        remainingSeconds--;
+        updateCountdownUI();
+
+        if (remainingSeconds <= 0) {
+          stopLoop();
+          alert('⏰ Đã hết thời gian luyện tập hẹn giờ!');
+        }
+      }, 1000);
+    }
+
+    function updateCountdownUI() {
+      const mins = Math.floor(remainingSeconds / 60);
+      const secs = remainingSeconds % 60;
+      countdownDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // 4. Bắt đầu phát lặp lại
+    btnStart.addEventListener('click', () => {
+      const text = repeatText.value.trim();
+      if (!text) {
+        alert('Thầy vui lòng nhập nội dung câu thoại!');
+        return;
+      }
+
+      isPlaying = true;
+      btnStart.disabled = true;
+      btnStart.style.backgroundColor = '#dadce0';
+      btnStart.style.color = '#5f6368';
+
+      btnStop.disabled = false;
+      btnStop.style.backgroundColor = '#d93025';
+      btnStop.style.color = '#ffffff';
+
+      // Chạy hẹn giờ
+      const selectedMinutes = parseInt(timerSelect.value, 10);
+      startCountdown(selectedMinutes);
+
+      // Bắt đầu đọc câu đầu tiên
+      playTTS(text);
+    });
+
+    // 5. Dừng phát
+    function stopLoop() {
+      isPlaying = false;
+      
+      if (audioPlayer) {
+        audioPlayer.pause();
+        audioPlayer.currentTime = 0;
+      }
+
+      if (loopTimeout) clearTimeout(loopTimeout);
+      if (countdownInterval) clearInterval(countdownInterval);
+
+      // Reset giao diện Nút bấm
+      btnStart.disabled = false;
+      btnStart.style.backgroundColor = '#1a73e8';
+      btnStart.style.color = '#ffffff';
+
+      btnStop.disabled = true;
+      btnStop.style.backgroundColor = '#dadce0';
+      btnStop.style.color = '#5f6368';
+
+      timerStatus.style.display = 'none';
+    }
+
+    btnStop.addEventListener('click', stopLoop);
+  })();
