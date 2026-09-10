@@ -663,8 +663,6 @@ tabIpaBtn.addEventListener('click', () => {
       dayListContainer.appendChild(card);
     });
   }
-const tabListenBtn = document.getElementById('tab-listen-btn');
-const listenView = document.getElementById('listen-view');
 
 // Trong hàm chuyển tab của thầy, thêm xử lý cho Tab Luyện Nghe:
 tabListenBtn.addEventListener('click', () => {
