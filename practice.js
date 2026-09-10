@@ -75,7 +75,6 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 const db = (typeof firebase !== 'undefined') ? firebase.database() : null;
 
 let SYNC_CODE = localStorage.getItem('user_sync_code') || 'DefaultCode';
-let userHasInteracted = false;
 let wakeLock = null;
 
 // ==========================================
@@ -121,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const dayListContainer = document.getElementById('day-list-container');
 
   let currentSessionList = [];
-  let isCustomSession = false; // Biến cờ chống Firebase ghi đè khi học bài theo ngày
+  let isCustomSession = false;
   let currentIndex = 0;
   let correctCount = 0;
   let wrongCount = 0;
@@ -129,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (syncInput) syncInput.value = SYNC_CODE;
 
-  // --- WAKE LOCK ---
+  // --- WAKE LOCK (Giữ sáng màn hình) ---
   async function requestWakeLock() {
     try {
       if ('wakeLock' in navigator) {
@@ -204,6 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         SYNC_CODE = code;
         alert('🎉 Đã cập nhật Mã đồng bộ! Đang tải dữ liệu mới...');
         listenToCloudData();
+        initAudioLoopModule(); // Tải lại dữ liệu bài đọc MP3 theo mã mới
       }
     });
   }
@@ -256,13 +256,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await res.json();
         const translatedText = data[0].map(item => item[0]).join('');
 
-        // Lấy câu ví dụ nếu có
         let exampleText = '';
         if (data[13] && Array.isArray(data[13][0])) {
           const exList = data[13][0].slice(0, 2).map(ex => ex[0].replace(/<\/?b>/g, ''));
-          if (exList.length > 0) {
-            exampleText = exList[0];
-          }
+          if (exList.length > 0) exampleText = exList[0];
         }
 
         if (isVi) {
@@ -322,14 +319,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const list = getStoredVocab();
 
       list.unshift({ 
-        word, 
-        meaning, 
-        phonetic, 
-        example,
-        date: todayStr, 
-        interval: 1, 
-        repetition: 0, 
-        nextReview: todayStr 
+        word, meaning, phonetic, example,
+        date: todayStr, interval: 1, repetition: 0, nextReview: todayStr 
       });
       saveStoredVocab(list);
 
@@ -415,7 +406,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeBadge) typeBadge.textContent = item.date ? `Ngày tạo: ${item.date}` : 'Từ mới';
     if (progressText) progressText.textContent = `${currentIndex + 1} / ${currentSessionList.length} từ`;
     
-    // Hiển thị Nghĩa và Ví dụ minh họa nếu có
     if (meaningDiv) {
       let html = item.meaning;
       if (item.example) {
@@ -440,7 +430,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- ÂM THANH & PHÁT ÂM CHUẨN TỰ NHIÊN ---
   const unlockAudio = () => {
-    userHasInteracted = true;
     const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
     silentAudio.play().catch(() => {});
     document.removeEventListener('click', unlockAudio);
@@ -465,9 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const playPromise = audio.play();
     if (playPromise !== undefined) {
-      playPromise.catch(() => {
-        speakWithNaturalVoice(cleanText, rate);
-      });
+      playPromise.catch(() => speakWithNaturalVoice(cleanText, rate));
     }
   }
 
@@ -490,9 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- CHECK ANSWER & PHÍM TẮT ---
   function checkAnswer() {
-    if (!currentSessionList || currentSessionList.length === 0 || !currentSessionList[currentIndex]) {
-      return;
-    }
+    if (!currentSessionList || currentSessionList.length === 0 || !currentSessionList[currentIndex]) return;
 
     const item = currentSessionList[currentIndex];
     if (!item || !item.word) return;
@@ -554,7 +539,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (typeInput) {
     typeInput.addEventListener('keydown', (e) => {
-      // Ctrl + Space -> Phát âm
       if (e.ctrlKey && e.code === 'Space') {
         e.preventDefault();
         const currentItem = currentSessionList[currentIndex];
@@ -562,17 +546,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Enter -> Kiểm tra / Sang từ tiếp theo
-      if (e.key === 'Enter') {
-        checkAnswer();
-      }
+      if (e.key === 'Enter') checkAnswer();
     });
   }
 
   if (speakBtn) speakBtn.addEventListener('click', () => speakWord(currentSessionList[currentIndex]?.word));
   if (restartBtn) restartBtn.addEventListener('click', () => loadVocabData(currentSessionList));
 
-  // --- QUẢN LÝ DANH SÁCH BÀI HỌC (SỬA ĐẦY ĐỦ: TỪ, IPA, NGHĨA, VÍ DỤ) ---
+  // --- QUẢN LÝ DANH SÁCH BÀI HỌC (EVENT DELEGATION TỐI ƯU HIỆU NĂNG) ---
   function renderDayList() {
     const list = getStoredVocab();
     if (!dayListContainer) return;
@@ -611,7 +592,6 @@ document.addEventListener('DOMContentLoaded', () => {
               <button class="btn-delete-word" data-index="${idx}" style="background:none; border:none; cursor:pointer; color:#ea4335; font-size:12px;">🗑️ Xóa</button>
             </div>
             
-            <!-- KHUNG CHỈNH SỬA TỔNG HỢP -->
             <div id="edit-box-${idx}" style="display:none; width:100%; margin-top:8px; gap:6px; flex-direction:column; background:#f8f9fa; padding:8px; border-radius:6px; border:1px solid #dadce0;">
               <div style="display:flex; gap:6px;">
                 <input type="text" id="input-edit-word-${idx}" value="${item.word}" placeholder="Từ tiếng Anh" style="flex:1; padding:4px 6px; border:1px solid #ccc; border-radius:4px; font-weight:bold;" />
@@ -638,55 +618,37 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
       dayListContainer.appendChild(card);
     });
+  }
 
-    // Phát âm từ vựng trong danh sách
-    document.querySelectorAll('.btn-speak-item').forEach(btn => {
-      btn.addEventListener('click', (e) => speakWord(e.target.getAttribute('data-word')));
-    });
+  // Bắt sự kiện trên container danh sách bài học bằng Event Delegation
+  if (dayListContainer) {
+    dayListContainer.addEventListener('click', (e) => {
+      const target = e.target;
 
-    // Học lại bài theo ngày
-    document.querySelectorAll('.btn-play-day').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      if (target.classList.contains('btn-speak-item')) {
+        speakWord(target.getAttribute('data-word'));
+      } else if (target.classList.contains('btn-play-day')) {
         e.preventDefault();
-        e.stopPropagation();
-
-        const selectedDay = e.target.getAttribute('data-day');
+        const selectedDay = target.getAttribute('data-day');
         const fullList = getStoredVocab();
         const dayWords = fullList.filter(item => (item.date || 'Chưa phân ngày') === selectedDay);
 
         if (dayWords.length > 0) {
           switchTab(tabPracticeBtn, practiceView);
-          setTimeout(() => {
-            loadVocabData(dayWords);
-          }, 50);
+          setTimeout(() => loadVocabData(dayWords), 50);
         } else {
           alert('Không tìm thấy từ vựng nào thuộc bài học này!');
         }
-      });
-    });
-
-    // Mở khung chỉnh sửa
-    document.querySelectorAll('.btn-edit-word-item').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const idx = e.target.getAttribute('data-index');
+      } else if (target.classList.contains('btn-edit-word-item')) {
+        const idx = target.getAttribute('data-index');
         const editBox = document.getElementById(`edit-box-${idx}`);
         if (editBox) editBox.style.display = 'flex';
-      });
-    });
-
-    // Hủy chỉnh sửa
-    document.querySelectorAll('.btn-cancel-edit-item').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const idx = e.target.getAttribute('data-index');
+      } else if (target.classList.contains('btn-cancel-edit-item')) {
+        const idx = target.getAttribute('data-index');
         const editBox = document.getElementById(`edit-box-${idx}`);
         if (editBox) editBox.style.display = 'none';
-      });
-    });
-
-    // Lưu từ vựng sau khi chỉnh sửa
-    document.querySelectorAll('.btn-save-word-item').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const idx = parseInt(e.target.getAttribute('data-index'));
+      } else if (target.classList.contains('btn-save-word-item')) {
+        const idx = parseInt(target.getAttribute('data-index'), 10);
         const newWord = document.getElementById(`input-edit-word-${idx}`)?.value.trim();
         const newPhonetic = document.getElementById(`input-edit-phonetic-${idx}`)?.value.trim();
         const newMeaning = document.getElementById(`input-edit-meaning-${idx}`)?.value.trim();
@@ -705,13 +667,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         saveStoredVocab(vocabList);
         renderDayList();
-      });
-    });
-
-    // Xóa từ vựng
-    document.querySelectorAll('.btn-delete-word').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const idx = parseInt(e.target.getAttribute('data-index'));
+      } else if (target.classList.contains('btn-delete-word')) {
+        const idx = parseInt(target.getAttribute('data-index'), 10);
         if (confirm('Thầy có chắc muốn xóa từ này?')) {
           const vocabList = getStoredVocab();
           vocabList.splice(idx, 1);
@@ -719,14 +676,15 @@ document.addEventListener('DOMContentLoaded', () => {
           renderDayList();
           updateDueCountBadge();
         }
-      });
+      }
     });
   }
 
-  // --- KÍCH HOẠT FLASHCARD IPA ---
+  // --- FLASHCARD IPA & FIREBASE AUDIO LOOP MODULE ---
   initIpaFlashcard();
+  initAudioLoopModule();
 
-  // --- KHỞI CHẠY LẦN ĐẦU ---
+  // --- KHỞI CHẠY KHỞI TẠO DỮ LIỆU BAN ĐẦU ---
   listenToCloudData();
   loadVocabData();
   updateDueCountBadge();
@@ -820,18 +778,12 @@ function speakSpeechSynthesis(text) {
     window.speechSynthesis.speak(utterance);
   }
 }
- (function() {
-  // CẤU HÌNH FIREBASE (Thầy thay bằng URL Database của thầy)
 
+// ==========================================
+// 5. MODULE PHÁT MP3 LẶP LẠI VÀ ĐỒNG BỘ FIREBASE
+// ==========================================
+function initAudioLoopModule() {
   const FIREBASE_DB_URL = "https://hoctuvungtienganh-default-rtdb.firebaseio.com"; 
-  const USER_CODE = "123456"; // Hoặc mã định danh lớp học / tài khoản của thầy
-
-  let isPlaying = false;
-  let audioPlayer = new Audio();
-  let loopTimeout = null;
-  let countdownInterval = null;
-  let remainingSeconds = 0;
-  let currentFirebaseData = {}; // Lưu giữ danh sách bài đọc từ Firebase
 
   const repeatText = document.getElementById('repeatText');
   const customAudioUrl = document.getElementById('customAudioUrl');
@@ -846,13 +798,22 @@ function speakSpeechSynthesis(text) {
   const btnStart = document.getElementById('btnStartRepeat');
   const btnStop = document.getElementById('btnStopRepeat');
 
-  // --- A. TẢI & ĐỒNG BỘ DỮ LIỆU TỪ FIREBASE ---
+  if (!btnStart || !btnStop) return;
 
-  // 1. Tải danh sách bài đọc từ Firebase
+  let isPlaying = false;
+  let audioPlayer = new Audio();
+  let loopTimeout = null;
+  let countdownInterval = null;
+  let remainingSeconds = 0;
+  let currentFirebaseData = {};
+
   async function loadAudioListFromFirebase() {
+    if (!savedAudioSelect) return;
+    const userCode = SYNC_CODE || "DefaultCode";
+
     try {
       savedAudioSelect.innerHTML = '<option value="">-- Đang tải... --</option>';
-      const res = await fetch(`${FIREBASE_DB_URL}/audio_lessons/${USER_CODE}.json`);
+      const res = await fetch(`${FIREBASE_DB_URL}/audio_lessons/${userCode}.json`);
       const data = await res.json();
       
       currentFirebaseData = data || {};
@@ -866,95 +827,97 @@ function speakSpeechSynthesis(text) {
         savedAudioSelect.appendChild(option);
       });
     } catch (err) {
-      console.error("Lỗi kết nối Firebase:", err);
+      console.error("Lỗi kết nối Firebase MP3:", err);
       savedAudioSelect.innerHTML = '<option value="">-- Lỗi tải dữ liệu --</option>';
     }
   }
 
-  // 2. Chọn bài từ menu thả xuống
-  savedAudioSelect.addEventListener('change', (e) => {
-    const key = e.target.value;
-    if (key && currentFirebaseData[key]) {
-      repeatText.value = currentFirebaseData[key].title || '';
-      customAudioUrl.value = currentFirebaseData[key].url || '';
-    }
-  });
+  if (savedAudioSelect) {
+    savedAudioSelect.addEventListener('change', (e) => {
+      const key = e.target.value;
+      if (key && currentFirebaseData[key]) {
+        if (repeatText) repeatText.value = currentFirebaseData[key].title || '';
+        if (customAudioUrl) customAudioUrl.value = currentFirebaseData[key].url || '';
+      }
+    });
+  }
 
-  // 3. Thêm bài mới lên Firebase (POST)
-  btnSaveAudio.addEventListener('click', async () => {
-    const title = repeatText.value.trim();
-    const url = customAudioUrl.value.trim();
+  if (btnSaveAudio) {
+    btnSaveAudio.addEventListener('click', async () => {
+      const title = repeatText?.value.trim();
+      const url = customAudioUrl?.value.trim();
+      const userCode = SYNC_CODE || "DefaultCode";
 
-    if (!title || !url) {
-      alert('Thầy vui lòng nhập đủ Nội dung và Link MP3!');
-      return;
-    }
+      if (!title || !url) {
+        alert('Thầy vui lòng nhập đủ Nội dung và Link MP3!');
+        return;
+      }
 
-    btnSaveAudio.disabled = true;
-    btnSaveAudio.textContent = '⏳ Đang lưu...';
+      btnSaveAudio.disabled = true;
+      btnSaveAudio.textContent = '⏳ Đang lưu...';
 
-    try {
-      await fetch(`${FIREBASE_DB_URL}/audio_lessons/${USER_CODE}.json`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: title,
-          url: url,
-          createdAt: Date.now()
-        })
-      });
-
-      alert('✅ Đã đồng bộ bài đọc lên Firebase!');
-      await loadAudioListFromFirebase();
-    } catch (err) {
-      alert('❌ Có lỗi xảy ra khi lưu!');
-    } finally {
-      btnSaveAudio.disabled = false;
-      btnSaveAudio.textContent = '☁️ Lưu bài đọc lên Cloud (Firebase)';
-    }
-  });
-
-  // 4. Xóa bài khỏi Firebase (DELETE)
-  btnDeleteAudio.addEventListener('click', async () => {
-    const key = savedAudioSelect.value;
-    if (!key) {
-      alert('Thầy chọn một bài để xóa!');
-      return;
-    }
-
-    if (confirm('Thầy có chắc chắn muốn xóa bài đọc này?')) {
       try {
-        await fetch(`${FIREBASE_DB_URL}/audio_lessons/${USER_CODE}/${key}.json`, {
-          method: 'DELETE'
+        await fetch(`${FIREBASE_DB_URL}/audio_lessons/${userCode}.json`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: title,
+            url: url,
+            createdAt: Date.now()
+          })
         });
-        
-        repeatText.value = '';
-        customAudioUrl.value = '';
+
+        alert('✅ Đã đồng bộ bài đọc lên Firebase!');
         await loadAudioListFromFirebase();
       } catch (err) {
-        alert('❌ Lỗi khi xóa dữ liệu!');
+        alert('❌ Có lỗi xảy ra khi lưu bài đọc!');
+      } finally {
+        btnSaveAudio.disabled = false;
+        btnSaveAudio.textContent = '☁️ Lưu bài đọc lên Cloud (Firebase)';
       }
-    }
-  });
+    });
+  }
 
-  // Tải danh sách ngay khi ứng dụng khởi động
-  loadAudioListFromFirebase();
+  if (btnDeleteAudio) {
+    btnDeleteAudio.addEventListener('click', async () => {
+      const key = savedAudioSelect?.value;
+      const userCode = SYNC_CODE || "DefaultCode";
 
-  // --- B. QUẢN LÝ PHÁT ÂM THANH & CHẠY NGẦM ---
+      if (!key) {
+        alert('Thầy chọn một bài để xóa!');
+        return;
+      }
+
+      if (confirm('Thầy có chắc chắn muốn xóa bài đọc này?')) {
+        try {
+          await fetch(`${FIREBASE_DB_URL}/audio_lessons/${userCode}/${key}.json`, {
+            method: 'DELETE'
+          });
+          
+          if (repeatText) repeatText.value = '';
+          if (customAudioUrl) customAudioUrl.value = '';
+          await loadAudioListFromFirebase();
+        } catch (err) {
+          alert('❌ Lỗi khi xóa dữ liệu!');
+        }
+      }
+    });
+  }
 
   function playAudio() {
     if (!isPlaying) return;
 
-    const mp3Link = customAudioUrl.value.trim();
-    const textContent = repeatText.value.trim();
+    const mp3Link = customAudioUrl?.value.trim();
+    const textContent = repeatText?.value.trim() || 'Luyện đọc';
 
     if (mp3Link) {
       audioPlayer.src = mp3Link;
 
       if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
-          title: textContent || 'Bài luyện đọc MP3',
-          artist: 'Đi cùng con'
+          title: textContent,
+          artist: 'Đi cùng con',
+          album: 'Luyện nghe lặp lại'
         });
         navigator.mediaSession.setActionHandler('pause', stopLoop);
         navigator.mediaSession.setActionHandler('stop', stopLoop);
@@ -975,23 +938,24 @@ function speakSpeechSynthesis(text) {
 
   function handleAudioEnded() {
     if (isPlaying) {
-      const pauseTime = parseInt(pauseInterval.value, 10) * 1000;
+      const pauseSecs = parseInt(pauseInterval?.value || '2', 10);
       loopTimeout = setTimeout(() => {
         playAudio();
-      }, pauseTime);
+      }, pauseSecs * 1000);
     }
   }
 
   function startCountdown(minutes) {
     if (minutes === 0) {
-      timerStatus.style.display = 'none';
+      if (timerStatus) timerStatus.style.display = 'none';
       return;
     }
 
     remainingSeconds = minutes * 60;
-    timerStatus.style.display = 'block';
+    if (timerStatus) timerStatus.style.display = 'block';
     updateCountdownUI();
 
+    if (countdownInterval) clearInterval(countdownInterval);
     countdownInterval = setInterval(() => {
       remainingSeconds--;
       updateCountdownUI();
@@ -1004,6 +968,7 @@ function speakSpeechSynthesis(text) {
   }
 
   function updateCountdownUI() {
+    if (!countdownDisplay) return;
     const mins = Math.floor(remainingSeconds / 60);
     const secs = remainingSeconds % 60;
     countdownDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
@@ -1019,7 +984,7 @@ function speakSpeechSynthesis(text) {
     btnStop.style.backgroundColor = '#d93025';
     btnStop.style.color = '#ffffff';
 
-    const selectedMinutes = parseInt(timerSelect.value, 10);
+    const selectedMinutes = parseInt(timerSelect?.value || '10', 10);
     startCountdown(selectedMinutes);
 
     playAudio();
@@ -1048,8 +1013,11 @@ function speakSpeechSynthesis(text) {
     btnStop.style.backgroundColor = '#dadce0';
     btnStop.style.color = '#5f6368';
 
-    timerStatus.style.display = 'none';
+    if (timerStatus) timerStatus.style.display = 'none';
   }
 
   btnStop.addEventListener('click', stopLoop);
-})();
+
+  // Khởi tạo tải dữ liệu danh sách bài đọc ban đầu
+  loadAudioListFromFirebase();
+}
