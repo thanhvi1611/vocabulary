@@ -7,59 +7,322 @@
   
   <!-- PWA Metadata -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#1a73e8">
+  <meta name="theme-color" content="#2563eb">
+
+  <!-- Inter / Plus Jakarta Sans Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f9; margin: 0; padding: 15px; color: #333; }
-    .container { max-width: 800px; margin: 0 auto; }
-    
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: #eff6ff;
+      --success: #10b981;
+      --success-light: #ecfdf5;
+      --danger: #ef4444;
+      --danger-light: #fef2f2;
+      --warning: #f59e0b;
+      --bg-main: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      margin: 0;
+      padding: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 840px;
+      margin: 0 auto;
+    }
+
+    /* KHU VỰC ĐỒNG BỘ CLOUD */
+    .sync-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .sync-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Form Controls */
+    input[type="text"], input[type="url"], textarea, select {
+      font-family: inherit;
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background-color: var(--surface);
+      color: var(--text-main);
+      transition: all 0.2s ease;
+      outline: none;
+    }
+
+    input[type="text"]:focus, input[type="url"]:focus, textarea:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    button {
+      font-family: inherit;
+      transition: all 0.2s ease;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
     /* Navigation Tabs */
-    .nav-tabs { display: flex; gap: 8px; margin-bottom: 15px; flex-wrap: wrap; }
-    .tab-btn { flex: 1; min-width: 100px; background: #e0e0e0; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; color: #555; text-align: center; position: relative; }
-    .tab-btn.active { background: #1a73e8; color: white; }
+    .nav-tabs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .tab-btn {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      padding: 10px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .tab-btn:hover {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
 
     /* Badge đếm số từ SRS */
     .badge-due {
-      background-color: #ea4335;
+      background-color: var(--danger);
       color: white;
       font-size: 11px;
-      font-weight: bold;
+      font-weight: 800;
       padding: 2px 7px;
-      border-radius: 10px;
-      margin-left: 6px;
-      vertical-align: middle;
+      border-radius: 20px;
       display: inline-block;
+      line-height: 1;
     }
 
-    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-    
+    .card {
+      background: var(--surface);
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
     /* Form Thêm Từ */
-    .form-group { margin-bottom: 12px; text-align: left; }
-    .form-group label { font-size: 12px; font-weight: bold; color: #555; display: block; margin-bottom: 4px; }
-    .input-with-btn { display: flex; gap: 6px; }
-    .btn-auto { background: #34a853; color: white; border: none; padding: 0 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; }
-    .btn-save { width: 100%; background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 15px; margin-top: 10px; }
-    #status { font-size: 13px; text-align: center; margin-top: 10px; min-height: 20px; font-weight: bold; }
+    .form-group { margin-bottom: 16px; text-align: left; }
+    .form-group label { font-size: 13px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 6px; }
+    .input-with-btn { display: flex; gap: 8px; }
+    
+    .btn-auto {
+      background: var(--success);
+      color: white;
+      border: none;
+      padding: 0 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .btn-auto:hover { background: #059669; }
+
+    .btn-save {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 15px;
+      margin-top: 12px;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+    .btn-save:hover { background: var(--primary-hover); }
+
+    #status { font-size: 13px; text-align: center; margin-top: 12px; min-height: 20px; font-weight: 700; }
 
     /* Quiz Area */
-    .stats { font-size: 13px; color: #666; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-    .badge { background: #e8f0fe; color: #1a73e8; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
-    .meaning { font-size: 24px; font-weight: bold; color: #202124; margin: 15px 0 5px 0; text-align: center; }
-    .phonetic { font-size: 15px; color: #d93025; margin-bottom: 20px; height: 22px; text-align: center; }
-    
-    input[type="text"] { width: 100%; padding: 10px; font-size: 15px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; outline: none; }
-    input.quiz-input { font-size: 18px; text-align: center; border-width: 2px; }
-    input.correct { border-color: #34a853 !important; background-color: #e6f4ea; }
-    input.incorrect { border-color: #ea4335 !important; background-color: #fce8e6; }
-    
-    .hint { margin-top: 15px; font-size: 13px; color: #777; min-height: 20px; text-align: center; }
-    .btn-action { background: #1a73e8; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; }
-    .day-card { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
-    .day-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; border-bottom: 1px solid #f0f0f0; padding-bottom: 6px; }
-    .btn-sm { padding: 6px 10px; font-size: 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .btn-play-sm { background: #34a853; color: white; }
+    .stats {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
 
-    /* CSS RIÊNG CHO FLASHCARD IPA 3D */
+    .badge {
+      background: var(--primary-light);
+      color: var(--primary);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .meaning {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin: 20px 0 6px 0;
+      text-align: center;
+      letter-spacing: -0.5px;
+    }
+
+    .phonetic {
+      font-size: 16px;
+      color: var(--danger);
+      margin-bottom: 24px;
+      height: 24px;
+      text-align: center;
+      font-weight: 600;
+    }
+    
+    input.quiz-input {
+      font-size: 20px;
+      text-align: center;
+      border-width: 2px;
+      padding: 14px;
+      border-radius: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    input.correct {
+      border-color: var(--success) !important;
+      background-color: var(--success-light) !important;
+      animation: pop 0.3s ease;
+    }
+
+    input.incorrect {
+      border-color: var(--danger) !important;
+      background-color: var(--danger-light) !important;
+      animation: shake 0.3s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+
+    @keyframes pop {
+      50% { transform: scale(1.02); }
+    }
+    
+    .hint {
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+      min-height: 20px;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .btn-action {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .day-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .btn-sm { padding: 6px 12px; font-size: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; }
+    .btn-play-sm { background: var(--success); color: white; }
+
+    /* KHU VỰC LUYỆN ĐỌC LẶP LẠI (REPEAT SPEECH) */
+    .practice-card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border);
+      margin-top: 20px;
+    }
+
+    /* FLASHCARD IPA 3D */
     .flashcard-wrapper { max-width: 360px; margin: 0 auto; perspective: 1000px; }
     .flashcard-card {
       width: 100%;
@@ -68,56 +331,75 @@
       transform-style: preserve-3d;
       transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
       cursor: pointer;
-      border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      border-radius: 20px;
+      box-shadow: var(--shadow-lg);
     }
     .flashcard-card.flipped { transform: rotateY(180deg); }
+    
     .card-face {
       position: absolute;
       width: 100%;
       height: 100%;
       backface-visibility: hidden;
-      border-radius: 16px;
-      padding: 20px;
-      background: #ffffff;
+      border-radius: 20px;
+      padding: 24px;
+      background: var(--surface);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      border: 1px solid #e0e0e0;
+      border: 1px solid var(--border);
       box-sizing: border-box;
     }
+
     .card-front {
       justify-content: center;
       align-items: center;
-      background: linear-gradient(135deg, #1a73e8, #0d47a1);
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
       color: white;
     }
-    .category-tag { position: absolute; top: 16px; left: 16px; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 12px; font-size: 12px; }
-    .ipa-symbol { font-size: 64px; font-weight: bold; }
-    .hint-flip { position: absolute; bottom: 16px; font-size: 12px; opacity: 0.8; }
+
+    .category-tag {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(4px);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .ipa-symbol { font-size: 72px; font-weight: 800; letter-spacing: -1px; }
+    .hint-flip { position: absolute; bottom: 20px; font-size: 12px; opacity: 0.85; font-weight: 500; }
+    
     .card-back { transform: rotateY(180deg); text-align: left; }
     .card-header-ipa { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .badge-ipa { background: #e8f0fe; color: #1a73e8; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 12px; }
-    .btn-sound-ipa { background: #34a853; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 13px; }
-    .card-sec h4 { font-size: 13px; color: #5f6368; margin: 8px 0 4px 0; }
-    .card-sec p { font-size: 13px; line-height: 1.4; color: #202124; margin: 0; }
+    .badge-ipa { background: var(--primary-light); color: var(--primary); padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; }
+    .btn-sound-ipa { background: var(--success); color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 13px; }
+    
+    .card-sec h4 { font-size: 13px; color: var(--text-muted); margin: 10px 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+    .card-sec p { font-size: 14px; line-height: 1.5; color: var(--text-main); margin: 0; }
+    
     .ipa-examples { list-style: none; padding: 0; margin: 0; }
-    .ipa-examples li { font-size: 14px; padding: 4px 0; border-bottom: 1px dashed #eee; display: flex; justify-content: space-between; }
-    .ipa-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
-    .ipa-controls button { padding: 8px 16px; border: none; background: #ffffff; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    .ipa-examples li { font-size: 14px; padding: 6px 0; border-bottom: 1px dashed var(--border); display: flex; justify-content: space-between; }
+    
+    .ipa-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; }
+    .ipa-controls button { padding: 10px 18px; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; font-weight: 700; cursor: pointer; box-shadow: var(--shadow-sm); }
+    .ipa-controls button:hover { background: var(--bg-main); }
   </style>
 </head>
 <body>
 
-  <!-- KHU VỰC ĐỒNG BỘ CLOUD -->
-  <div style="background: #e8f0fe; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 8px; align-items: center;">
-    <span style="font-size: 13px; font-weight: bold; color: #1a73e8;">🔑 Mã đồng bộ:</span>
-    <input type="text" id="sync-code-input" placeholder="Nhập mã bí mật (ví dụ: ThayMai2026)" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-    <button id="btn-save-sync-code" style="background: #1a73e8; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">Lưu mã</button>
-  </div>
-
   <div class="container">
-    <!-- THANH ĐIỀU HƯỚNG TAB (Đã thêm Tab Flashcard IPA) -->
+    <!-- KHU VỰC ĐỒNG BỘ CLOUD -->
+    <div class="sync-bar">
+      <span class="sync-title">🔑 Mã đồng bộ:</span>
+      <input type="text" id="sync-code-input" placeholder="Nhập mã bí mật (ví dụ: ThayMai2026)">
+      <button id="btn-save-sync-code" style="background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 700; white-space: nowrap;">Lưu mã</button>
+    </div>
+
+    <!-- THANH ĐIỀU HƯỚNG TAB -->
     <div class="nav-tabs">
       <button id="tab-add-btn" class="tab-btn">✨ Thêm Từ Mới</button>
       <button id="tab-practice-btn" class="tab-btn active">
@@ -126,73 +408,11 @@
       </button>
       <button id="tab-manage-btn" class="tab-btn">📅 Bài Học</button>
       <button id="tab-ipa-btn" class="tab-btn">🎴 Flashcard IPA</button>
-
-      <!-- KHU VỰC LUYỆN ĐỌC LẶP LẠI (REPEAT SPEECH) -->
-<div class="practice-card" style="background: #ffffff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 500px; margin: 20px auto; font-family: system-ui, sans-serif;">
-  <h3 style="margin-top: 0; color: #1a73e8;">🎧 Luyện Nghe & Đọc Lặp Lại (Firebase)</h3>
-
-  <!-- 1. Danh sách bài đọc từ Firebase -->
-  <div style="margin-bottom: 12px;">
-    <label style="font-size: 13px; font-weight: 600; color: #5f6368;">Chọn bài thoại đã lưu:</label>
-    <div style="display: flex; gap: 8px; margin-top: 4px;">
-      <select id="savedAudioSelect" style="flex: 1; padding: 8px; border: 1px solid #dadce0; border-radius: 8px; font-size: 14px;">
-        <option value="">-- Đang tải danh sách... --</option>
-      </select>
-      <button id="btnDeleteAudio" style="background: #fce8e6; color: #d93025; border: 1px solid #fad2cf; padding: 8px 12px; border-radius: 8px; font-weight: bold; cursor: pointer;">Xóa</button>
-    </div>
-  </div>
-
-  <!-- 2. Ô nhập thông tin -->
-  <div style="margin-bottom: 10px;">
-    <label style="font-size: 13px; font-weight: 600; color: #5f6368;">Tên / Nội dung câu thoại:</label>
-    <textarea id="repeatText" style="width: 100%; height: 50px; border: 1px solid #dadce0; border-radius: 8px; padding: 8px; box-sizing: border-box;" placeholder="Nhập nội dung câu thoại..."></textarea>
-  </div>
-
-  <div style="margin-bottom: 12px;">
-    <label style="font-size: 13px; font-weight: 600; color: #1a73e8;">Đường dẫn Link MP3:</label>
-    <input type="url" id="customAudioUrl" style="width: 100%; padding: 8px; border: 1px solid #dadce0; border-radius: 8px; box-sizing: border-box;" placeholder="https://res.cloudinary.com/.../audio.mp3">
-  </div>
-
-  <!-- Nút Lưu bài lên Firebase -->
-  <button id="btnSaveAudio" style="width: 100%; background: #34a853; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 16px;">
-    ☁️ Lưu bài đọc lên Cloud (Firebase)
-  </button>
-
-  <!-- 3. Tùy chọn Hẹn giờ & Khoảng nghỉ -->
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
-    <div>
-      <label style="font-size: 12px; color: #5f6368;">Nghỉ giữa các lần:</label>
-      <select id="pauseInterval" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #dadce0;">
-        <option value="1">1 giây</option>
-        <option value="2" selected>2 giây</option>
-        <option value="3">3 giây</option>
-      </select>
-    </div>
-    <div>
-      <label style="font-size: 12px; color: #5f6368;">Hẹn giờ tự dừng:</label>
-      <select id="timerSelect" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid #dadce0;">
-        <option value="5">5 phút</option>
-        <option value="10" selected>10 phút</option>
-        <option value="0">Không giới hạn</option>
-      </select>
-    </div>
-  </div>
-
-  <div id="timerStatus" style="display: none; text-align: center; margin-bottom: 12px; font-weight: bold; color: #d93025; background: #fce8e6; padding: 6px; border-radius: 6px; font-size: 13px;">
-    ⏱️ Thời gian còn lại: <span id="countdownDisplay">10:00</span>
-  </div>
-
-  <!-- Nút Điều khiển -->
-  <div style="display: flex; gap: 10px;">
-    <button id="btnStartRepeat" style="flex: 1; background: #1a73e8; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer;">▶ Bắt đầu phát</button>
-    <button id="btnStopRepeat" disabled style="flex: 1; background: #dadce0; color: #5f6368; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer;">⏹ Dừng lại</button>
-  </div>
-</div>
     </div>
 
     <!-- TAB 1: THÊM TỪ VỰNG & DỊCH NHANH -->
     <div id="add-view" class="card" style="display: none;">
-      <h3 style="margin-top: 0; color: #1a73e8; text-align: center;">✨ Thêm Từ Vựng Mới</h3>
+      <h3 style="margin-top: 0; color: var(--primary); text-align: center; font-size: 20px;">✨ Thêm Từ Vựng Mới</h3>
       
       <div class="form-group">
         <label for="input-word">Từ Tiếng Anh hoặc Tiếng Việt:</label>
@@ -220,18 +440,20 @@
     <div id="practice-view" class="card">
       <div id="header-stats" class="stats">
         <span id="type-badge" class="badge">Từ mới</span>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <select id="speech-rate-select" style="font-size:12px; padding:2px;">
+        <div style="display:flex; gap:12px; align-items:center;">
+          <select id="speech-rate-select" style="font-size:12px; padding:4px 8px; border-radius: 6px;">
             <option value="0.75">0.75x</option>
             <option value="1.0" selected>1.0x</option>
           </select>
-          <label style="font-size:12px;"><input type="checkbox" id="auto-audio-toggle" checked> 🔊 Nối âm</label>
+          <label style="font-size:13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <input type="checkbox" id="auto-audio-toggle" checked style="accent-color: var(--primary);"> 🔊 Nối âm
+          </label>
         </div>
-        <span id="progress-text">0 / 0 từ</span>
+        <span id="progress-text" style="font-weight: 700; color: var(--text-main);">0 / 0 từ</span>
       </div>
 
       <div id="quiz-area" style="text-align: center;">
-        <button id="speak-btn" style="background:none; border:1px solid #ddd; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:13px;">🔊 Nghe phát âm</button>
+        <button id="speak-btn" style="background: var(--surface); border: 1.5px solid var(--border); padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">🔊 Nghe phát âm</button>
         <div id="meaning" class="meaning">Đang tải...</div>
         <div id="phonetic" class="phonetic"></div>
 
@@ -239,23 +461,85 @@
         <div id="hint" class="hint">Nhấn Enter để kiểm tra</div>
       </div>
 
-      <div id="completed-area" style="display: none; text-align: center;">
-        <div style="font-size: 40px; margin-bottom: 10px;">🎉</div>
-        <div style="font-size: 18px; color: #34a853; font-weight: bold; margin-bottom: 10px;">Hoàn thành bài học!</div>
-        <div id="complete-detail" style="font-size: 14px; color: #555; margin-bottom: 20px;"></div>
+      <div id="completed-area" style="display: none; text-align: center; padding: 20px 0;">
+        <div style="font-size: 48px; margin-bottom: 12px;">🎉</div>
+        <div style="font-size: 20px; color: var(--success); font-weight: 800; margin-bottom: 8px;">Hoàn thành bài học!</div>
+        <div id="complete-detail" style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;"></div>
         <button id="restart-btn" class="btn-action">🔄 Học lại lượt này</button>
+      </div>
+
+      <!-- KHU VỰC LUYỆN ĐỌC LẶP LẠI (REPEAT SPEECH) -->
+      <div class="practice-card">
+        <h3 style="margin-top: 0; color: var(--primary); font-size: 18px; margin-bottom: 16px;">🎧 Luyện Nghe & Đọc Lặp Lại (Firebase)</h3>
+
+        <!-- 1. Danh sách bài đọc từ Firebase -->
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 13px; font-weight: 700; color: var(--text-muted);">Chọn bài thoại đã lưu:</label>
+          <div style="display: flex; gap: 8px; margin-top: 6px;">
+            <select id="savedAudioSelect" style="flex: 1;">
+              <option value="">-- Đang tải danh sách... --</option>
+            </select>
+            <button id="btnDeleteAudio" style="background: var(--danger-light); color: var(--danger); border: 1px solid #fca5a5; padding: 8px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; white-space: nowrap;">Xóa</button>
+          </div>
+        </div>
+
+        <!-- 2. Ô nhập thông tin -->
+        <div style="margin-bottom: 14px;">
+          <label style="font-size: 13px; font-weight: 700; color: var(--text-muted);">Tên / Nội dung câu thoại:</label>
+          <textarea id="repeatText" style="margin-top: 6px; height: 60px; resize: vertical;" placeholder="Nhập nội dung câu thoại..."></textarea>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 13px; font-weight: 700; color: var(--primary);">Đường dẫn Link MP3:</label>
+          <input type="url" id="customAudioUrl" style="margin-top: 6px;" placeholder="https://res.cloudinary.com/.../audio.mp3">
+        </div>
+
+        <!-- Nút Lưu bài lên Firebase -->
+        <button id="btnSaveAudio" style="width: 100%; background: var(--success); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">
+          ☁️ Lưu bài đọc lên Cloud (Firebase)
+        </button>
+
+        <!-- 3. Tùy chọn Hẹn giờ & Khoảng nghỉ -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+          <div>
+            <label style="font-size: 12px; font-weight: 700; color: var(--text-muted);">Nghỉ giữa các lần:</label>
+            <select id="pauseInterval" style="margin-top: 4px;">
+              <option value="1">1 giây</option>
+              <option value="2" selected>2 giây</option>
+              <option value="3">3 giây</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size: 12px; font-weight: 700; color: var(--text-muted);">Hẹn giờ tự dừng:</label>
+            <select id="timerSelect" style="margin-top: 4px;">
+              <option value="5">5 phút</option>
+              <option value="10" selected>10 phút</option>
+              <option value="0">Không giới hạn</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="timerStatus" style="display: none; text-align: center; margin-bottom: 16px; font-weight: 700; color: var(--danger); background: var(--danger-light); padding: 8px; border-radius: 8px; font-size: 13px; border: 1px solid #fca5a5;">
+          ⏱️ Thời gian còn lại: <span id="countdownDisplay">10:00</span>
+        </div>
+
+        <!-- Nút Điều khiển -->
+        <div style="display: flex; gap: 12px;">
+          <button id="btnStartRepeat" style="flex: 1; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer;">▶ Bắt đầu phát</button>
+          <button id="btnStopRepeat" disabled style="flex: 1; background: var(--border); color: var(--text-muted); border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer;">⏹ Dừng lại</button>
+        </div>
       </div>
     </div>
 
     <!-- TAB 3: DANH SÁCH BÀI HỌC -->
     <div id="manage-view" class="card" style="display: none;">
-      <h3 style="margin-top: 0; color: #1a73e8;">Danh Sách Bài Học Nhóm Theo Ngày</h3>
+      <h3 style="margin-top: 0; color: var(--primary); font-size: 20px; margin-bottom: 16px;">Danh Sách Bài Học Nhóm Theo Ngày</h3>
       <div id="day-list-container"></div>
     </div>
 
-    <!-- TAB 4: FLASHCARD 44 ÂM IPA (TÍCH HỢP MỚI) -->
+    <!-- TAB 4: FLASHCARD 44 ÂM IPA -->
     <div id="ipa-view" class="card" style="display: none; text-align: center;">
-      <h3 style="margin-top: 0; color: #1a73e8;">🎴 Flashcard 44 Âm IPA Chuẩn</h3>
+      <h3 style="margin-top: 0; color: var(--primary); font-size: 20px; margin-bottom: 20px;">🎴 Flashcard 44 Âm IPA Chuẩn</h3>
       
       <div class="flashcard-wrapper">
         <div class="flashcard-card" id="ipa-card">
@@ -287,7 +571,7 @@
 
         <div class="ipa-controls">
           <button id="ipa-btn-prev">⬅️ Trước</button>
-          <span id="ipa-counter" style="font-weight: bold; font-size: 14px; color: #555;">1 / 44</span>
+          <span id="ipa-counter" style="font-weight: 800; font-size: 14px; color: var(--text-main);">1 / 44</span>
           <button id="ipa-btn-next">Sau ➡️</button>
         </div>
       </div>
