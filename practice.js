@@ -836,27 +836,51 @@ function speakSpeechSynthesis(text) {
     const btnStop = document.getElementById('btnStopRepeat');
 
     // 1. Hàm phát một câu từ Google TTS
-    function playTTS(text) {
-      if (!isPlaying) return;
+   // 1. Hàm phát một câu thoại bằng Web Speech API chuẩn trình duyệt
+function playTTS(text) {
+  if (!isPlaying) return;
 
-      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=en&client=tw-ob`;
-      audioPlayer.src = ttsUrl;
+  // Kiểm tra nếu trình duyệt hỗ trợ SpeechSynthesis
+  if ('speechSynthesis' in window) {
+    // Hủy các câu đọc dở trước đó (nếu có)
+    window.speechSynthesis.cancel();
 
-      // Kích hoạt Media Session để chạy ngầm trên điện thoại / Lockscreen
-      if ('mediaSession' in navigator) {
-        navigator.mediaSession.metadata = new MediaMetadata({
-          title: 'Luyện đọc lặp lại',
-          artist: 'Đi cùng con',
-          album: text
-        });
-        navigator.mediaSession.setActionHandler('pause', stopLoop);
-        navigator.mediaSession.setActionHandler('stop', stopLoop);
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-US'; // Ngôn ngữ tiếng Anh
+    utterance.rate = 0.9;     // Tốc độ đọc (0.9 cho tự nhiên)
+
+    // Khi đọc xong một lượt -> Tự động gọi lượt tiếp theo
+    utterance.onend = () => {
+      if (isPlaying) {
+        const pauseTime = parseInt(pauseInterval.value, 10) * 1000;
+        loopTimeout = setTimeout(() => {
+          playTTS(repeatText.value.trim());
+        }, pauseTime);
       }
+    };
 
-      audioPlayer.play().catch(err => {
-        console.warn("Lỗi tự động phát âm thanh:", err);
+    // Bắt lỗi nếu hệ thống TTS của thiết bị gặp sự cố
+    utterance.onerror = (event) => {
+      console.warn("Lỗi đọc câu thoại:", event);
+    };
+
+    // Kích hoạt Media Session để tạo trình điều khiển trên màn hình khóa
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: 'Luyện đọc lặp lại',
+        artist: 'Đi cùng con',
+        album: text
       });
+      navigator.mediaSession.setActionHandler('pause', stopLoop);
+      navigator.mediaSession.setActionHandler('stop', stopLoop);
     }
+
+    // Thực hiện đọc
+    window.speechSynthesis.speak(utterance);
+  } else {
+    alert("Trình duyệt của thầy không hỗ trợ tính năng đọc giọng nói (SpeechSynthesis).");
+  }
+}
 
     // 2. Sự kiện khi đọc xong một lượt -> Nghỉ rồi đọc tiếp
     audioPlayer.onended = () => {
