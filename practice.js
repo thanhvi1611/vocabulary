@@ -82,15 +82,18 @@ let wakeLock = null;
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
   // ELEMENT REFS - TAB NAVIGATION
-  const tabAddBtn = document.getElementById('tab-add-btn');
-  const tabPracticeBtn = document.getElementById('tab-practice-btn');
-  const tabManageBtn = document.getElementById('tab-manage-btn');
-  const tabIpaBtn = document.getElementById('tab-ipa-btn');
+ // 1. Khai báo nút tab và view mới
+const tabAddBtn = document.getElementById('tab-add-btn');
+const tabPracticeBtn = document.getElementById('tab-practice-btn');
+const tabListenBtn = document.getElementById('tab-listen-btn');
+const tabManageBtn = document.getElementById('tab-manage-btn');
+const tabIpaBtn = document.getElementById('tab-ipa-btn');
 
-  const addView = document.getElementById('add-view');
-  const practiceView = document.getElementById('practice-view');
-  const manageView = document.getElementById('manage-view');
-  const ipaView = document.getElementById('ipa-view');
+const addView = document.getElementById('add-view');
+const practiceView = document.getElementById('practice-view');
+const listenView = document.getElementById('listen-view');
+const manageView = document.getElementById('manage-view');
+const ipaView = document.getElementById('ipa-view');
 
   // ELEMENT REFS - FORM & QUIZ
   const syncInput = document.getElementById('sync-code-input');
@@ -143,7 +146,48 @@ document.addEventListener('DOMContentLoaded', () => {
       await requestWakeLock();
     }
   });
+// 2. Hàm ẩn tất cả các View
+function hideAllViews() {
+  addView.style.display = 'none';
+  practiceView.style.display = 'none';
+  listenView.style.display = 'none';
+  manageView.style.display = 'none';
+  ipaView.style.display = 'none';
+  
+  // Xóa class active ở tất cả các nút
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+}
 
+// 3. Gán sự kiện click cho từng Tab
+tabAddBtn.addEventListener('click', () => {
+  hideAllViews();
+  addView.style.display = 'block';
+  tabAddBtn.classList.add('active');
+});
+
+tabPracticeBtn.addEventListener('click', () => {
+  hideAllViews();
+  practiceView.style.display = 'block';
+  tabPracticeBtn.classList.add('active');
+});
+
+tabListenBtn.addEventListener('click', () => {
+  hideAllViews();
+  listenView.style.display = 'block';
+  tabListenBtn.classList.add('active');
+});
+
+tabManageBtn.addEventListener('click', () => {
+  hideAllViews();
+  manageView.style.display = 'block';
+  tabManageBtn.classList.add('active');
+});
+
+tabIpaBtn.addEventListener('click', () => {
+  hideAllViews();
+  ipaView.style.display = 'block';
+  tabIpaBtn.classList.add('active');
+});
   // --- LOCALSTORAGE & FIREBASE UTILS ---
   function getStoredVocab() {
     const data = localStorage.getItem('vocabList');
