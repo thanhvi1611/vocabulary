@@ -820,179 +820,188 @@ function speakSpeechSynthesis(text) {
     window.speechSynthesis.speak(utterance);
   }
 }
-  (function() {
-    let isPlaying = false;
-    let audioPlayer = new Audio();
-    let loopTimeout = null;
-    let countdownInterval = null;
-    let remainingSeconds = 0;
+ (function() {
+  let isPlaying = false;
+  let audioPlayer = new Audio();
+  let loopTimeout = null;
+  let countdownInterval = null;
+  let remainingSeconds = 0;
 
-    const repeatText = document.getElementById('repeatText');
-    const pauseInterval = document.getElementById('pauseInterval');
-    const timerSelect = document.getElementById('timerSelect');
-    const timerStatus = document.getElementById('timerStatus');
-    const countdownDisplay = document.getElementById('countdownDisplay');
-    const btnStart = document.getElementById('btnStartRepeat');
-    const btnStop = document.getElementById('btnStopRepeat');
+  const repeatText = document.getElementById('repeatText');
+  const customAudioUrl = document.getElementById('customAudioUrl');
+  const savedAudioSelect = document.getElementById('savedAudioSelect');
+  const btnSaveAudio = document.getElementById('btnSaveAudio');
+  
+  const pauseInterval = document.getElementById('pauseInterval');
+  const timerSelect = document.getElementById('timerSelect');
+  const timerStatus = document.getElementById('timerStatus');
+  const countdownDisplay = document.getElementById('countdownDisplay');
+  const btnStart = document.getElementById('btnStartRepeat');
+  const btnStop = document.getElementById('btnStopRepeat');
 
-    // 1. Hàm phát một câu từ Google TTS
-   // 1. Hàm phát một câu thoại bằng Web Speech API chuẩn trình duyệt
-// Hàm chọn giọng đọc chất lượng cao (Natural / Google / Premium)
-function getBestEnglishVoice() {
-  const voices = window.speechSynthesis.getVoices();
-  if (!voices || voices.length === 0) return null;
+  // Key để lưu dữ liệu trong bộ nhớ máy
+  const STORAGE_KEY = 'MY_SAVED_AUDIO_LIST';
 
-  // Danh sách từ khóa ưu tiên giọng tự nhiên
-  const preferredKeywords = ['Natural', 'Google', 'Premium', 'Enhanced', 'Samantha', 'Karen', 'Daniel'];
+  // --- A. QUẢN LÝ DANH SÁCH BÀI LƯU ---
 
-  // 1. Tìm giọng tiếng Anh có chứa các từ khóa giọng hay
-  for (const key of preferredKeywords) {
-    const matchedVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes(key));
-    if (matchedVoice) return matchedVoice;
+  // 1. Tải danh sách bài đọc đã lưu ra menu
+  function loadSavedAudioList() {
+    const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    savedAudioSelect.innerHTML = '<option value="">-- Chọn bài đọc đã lưu --</option>';
+    
+    list.forEach((item, index) => {
+      const option = document.createElement('option');
+      option.value = index;
+      option.textContent = item.title;
+      savedAudioSelect.appendChild(option);
+    });
   }
 
-  // 2. Nếu không thấy, lấy giọng en-US hoặc en-GB bất kỳ
-  return voices.find(v => v.lang === 'en-US' || v.lang === 'en-GB') || voices.find(v => v.lang.startsWith('en'));
-}
-
-// Hàm phát câu thoại với giọng nâng cấp
-function playTTS(text) {
-  if (!isPlaying) return;
-
-  if ('speechSynthesis' in window) {
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    utterance.rate = 0.88; // Tốc độ vừa phải giúp giọng truyền cảm hơn
-    utterance.pitch = 1.0; // Tông giọng tự nhiên
-
-    // Cài đặt giọng đọc tốt nhất tìm được
-    const bestVoice = getBestEnglishVoice();
-    if (bestVoice) {
-      utterance.voice = bestVoice;
-    }
-
-    utterance.onend = () => {
-      if (isPlaying) {
-        const pauseTime = parseInt(pauseInterval.value, 10) * 1000;
-        loopTimeout = setTimeout(() => {
-          playTTS(repeatText.value.trim());
-        }, pauseTime);
+  // 2. Khi chọn một bài từ danh sách thả xuống
+  savedAudioSelect.addEventListener('change', (e) => {
+    const index = e.target.value;
+    if (index !== '') {
+      const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      const selectedItem = list[index];
+      if (selectedItem) {
+        repeatText.value = selectedItem.title;
+        customAudioUrl.value = selectedItem.url;
       }
-    };
+    }
+  });
 
-    utterance.onerror = (event) => {
-      console.warn("Lỗi đọc câu thoại:", event);
-    };
+  // 3. Bấm nút "Lưu bài này"
+  btnSaveAudio.addEventListener('click', () => {
+    const title = repeatText.value.trim();
+    const url = customAudioUrl.value.trim();
 
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.metadata = new MediaMetadata({
-        title: 'Luyện đọc lặp lại',
-        artist: 'Đi cùng con',
-        album: text
-      });
-      navigator.mediaSession.setActionHandler('pause', stopLoop);
-      navigator.mediaSession.setActionHandler('stop', stopLoop);
+    if (!title || !url) {
+      alert('Thầy vui lòng nhập đủ Nội dung và Link MP3 trước khi lưu!');
+      return;
     }
 
-    window.speechSynthesis.speak(utterance);
+    const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    list.push({ title, url });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+
+    alert('✅ Đã lưu bài đọc vào danh sách!');
+    loadSavedAudioList();
+    savedAudioSelect.value = list.length - 1; // Chọn ngay bài vừa lưu
+  });
+
+  // Tải danh sách khi vừa mở ứng dụng
+  loadSavedAudioList();
+
+  // --- B. QUẢN LÝ PHÁT ÂM THANH & HẸN GIỜ ---
+
+  function playAudio() {
+    if (!isPlaying) return;
+
+    const mp3Link = customAudioUrl.value.trim();
+    const textContent = repeatText.value.trim();
+
+    if (mp3Link) {
+      audioPlayer.src = mp3Link;
+
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: textContent || 'Luyện nghe MP3',
+          artist: 'Đi cùng con'
+        });
+        navigator.mediaSession.setActionHandler('pause', stopLoop);
+        navigator.mediaSession.setActionHandler('stop', stopLoop);
+      }
+
+      audioPlayer.play().catch(err => console.warn("Lỗi phát MP3:", err));
+    } else if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(textContent);
+      utterance.lang = 'en-US';
+      utterance.rate = 0.9;
+      utterance.onend = () => handleAudioEnded();
+      window.speechSynthesis.speak(utterance);
+    }
   }
-}
 
-// Bắt sự kiện tải danh sách giọng đọc của trình duyệt (Bắt buộc cho Chrome/Edge)
-if ('speechSynthesis' in window) {
-  window.speechSynthesis.onvoiceschanged = () => {
-    getBestEnglishVoice();
-  };
-}
-    // 2. Sự kiện khi đọc xong một lượt -> Nghỉ rồi đọc tiếp
-    audioPlayer.onended = () => {
-      if (isPlaying) {
-        const pauseTime = parseInt(pauseInterval.value, 10) * 1000;
-        loopTimeout = setTimeout(() => {
-          playTTS(repeatText.value.trim());
-        }, pauseTime);
-      }
-    };
+  audioPlayer.onended = () => handleAudioEnded();
 
-    // 3. Xử lý Đếm ngược Hẹn giờ
-    function startCountdown(minutes) {
-      if (minutes === 0) {
-        timerStatus.style.display = 'none';
-        return;
-      }
+  function handleAudioEnded() {
+    if (isPlaying) {
+      const pauseTime = parseInt(pauseInterval.value, 10) * 1000;
+      loopTimeout = setTimeout(() => {
+        playAudio();
+      }, pauseTime);
+    }
+  }
 
-      remainingSeconds = minutes * 60;
-      timerStatus.style.display = 'block';
+  function startCountdown(minutes) {
+    if (minutes === 0) {
+      timerStatus.style.display = 'none';
+      return;
+    }
+
+    remainingSeconds = minutes * 60;
+    timerStatus.style.display = 'block';
+    updateCountdownUI();
+
+    countdownInterval = setInterval(() => {
+      remainingSeconds--;
       updateCountdownUI();
 
-      countdownInterval = setInterval(() => {
-        remainingSeconds--;
-        updateCountdownUI();
-
-        if (remainingSeconds <= 0) {
-          stopLoop();
-          alert('⏰ Đã hết thời gian luyện tập hẹn giờ!');
-        }
-      }, 1000);
-    }
-
-    function updateCountdownUI() {
-      const mins = Math.floor(remainingSeconds / 60);
-      const secs = remainingSeconds % 60;
-      countdownDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-
-    // 4. Bắt đầu phát lặp lại
-    btnStart.addEventListener('click', () => {
-      const text = repeatText.value.trim();
-      if (!text) {
-        alert('Thầy vui lòng nhập nội dung câu thoại!');
-        return;
+      if (remainingSeconds <= 0) {
+        stopLoop();
+        alert('⏰ Đã hết thời gian luyện tập!');
       }
+    }, 1000);
+  }
 
-      isPlaying = true;
-      btnStart.disabled = true;
-      btnStart.style.backgroundColor = '#dadce0';
-      btnStart.style.color = '#5f6368';
+  function updateCountdownUI() {
+    const mins = Math.floor(remainingSeconds / 60);
+    const secs = remainingSeconds % 60;
+    countdownDisplay.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
 
-      btnStop.disabled = false;
-      btnStop.style.backgroundColor = '#d93025';
-      btnStop.style.color = '#ffffff';
+  btnStart.addEventListener('click', () => {
+    isPlaying = true;
+    btnStart.disabled = true;
+    btnStart.style.backgroundColor = '#dadce0';
+    btnStart.style.color = '#5f6368';
 
-      // Chạy hẹn giờ
-      const selectedMinutes = parseInt(timerSelect.value, 10);
-      startCountdown(selectedMinutes);
+    btnStop.disabled = false;
+    btnStop.style.backgroundColor = '#d93025';
+    btnStop.style.color = '#ffffff';
 
-      // Bắt đầu đọc câu đầu tiên
-      playTTS(text);
-    });
+    const selectedMinutes = parseInt(timerSelect.value, 10);
+    startCountdown(selectedMinutes);
 
-    // 5. Dừng phát
-    function stopLoop() {
+    playAudio();
+  });
+
+  function stopLoop() {
+    isPlaying = false;
+
+    if (audioPlayer) {
+      audioPlayer.pause();
+      audioPlayer.currentTime = 0;
+    }
+
+    if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
-      isPlaying = false;
-      
-      if (audioPlayer) {
-        audioPlayer.pause();
-        audioPlayer.currentTime = 0;
-      }
-
-      if (loopTimeout) clearTimeout(loopTimeout);
-      if (countdownInterval) clearInterval(countdownInterval);
-
-      // Reset giao diện Nút bấm
-      btnStart.disabled = false;
-      btnStart.style.backgroundColor = '#1a73e8';
-      btnStart.style.color = '#ffffff';
-
-      btnStop.disabled = true;
-      btnStop.style.backgroundColor = '#dadce0';
-      btnStop.style.color = '#5f6368';
-
-      timerStatus.style.display = 'none';
     }
 
-    btnStop.addEventListener('click', stopLoop);
-  })();
+    if (loopTimeout) clearTimeout(loopTimeout);
+    if (countdownInterval) clearInterval(countdownInterval);
+
+    btnStart.disabled = false;
+    btnStart.style.backgroundColor = '#1a73e8';
+    btnStart.style.color = '#ffffff';
+
+    btnStop.disabled = true;
+    btnStop.style.backgroundColor = '#dadce0';
+    btnStop.style.color = '#5f6368';
+
+    timerStatus.style.display = 'none';
+  }
+
+  btnStop.addEventListener('click', stopLoop);
+})();
