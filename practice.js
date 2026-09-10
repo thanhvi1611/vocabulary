@@ -822,8 +822,9 @@ function speakSpeechSynthesis(text) {
 }
  (function() {
   // CẤU HÌNH FIREBASE (Thầy thay bằng URL Database của thầy)
-  const FIREBASE_DB_URL = "https://tu-vung-extension-default-rtdb.firebaseio.com"; 
-  const USER_CODE = "default_user"; // Hoặc mã định danh lớp học / tài khoản của thầy
+
+  const FIREBASE_DB_URL = "https://hoctuvungtienganh-default-rtdb.firebaseio.com"; 
+  const USER_CODE = "123456"; // Hoặc mã định danh lớp học / tài khoản của thầy
 
   let isPlaying = false;
   let audioPlayer = new Audio();
