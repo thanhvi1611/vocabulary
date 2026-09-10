@@ -129,20 +129,23 @@
 
       <!-- KHU VỰC LUYỆN ĐỌC LẶP LẠI (REPEAT SPEECH) -->
 <div class="practice-card" style="background: #ffffff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 500px; margin: 20px auto; font-family: system-ui, sans-serif;">
-  <h3 style="margin-top: 0; color: #1a73e8;">🎧 Luyện Nghe & Đọc Lặp Lại</h3>
+  <h3 style="margin-top: 0; color: #1a73e8;">🎧 Luyện Nghe & Đọc Lặp Lại (Firebase)</h3>
 
-  <!-- 1. Danh sách bài đọc đã lưu -->
+  <!-- 1. Danh sách bài đọc từ Firebase -->
   <div style="margin-bottom: 12px;">
     <label style="font-size: 13px; font-weight: 600; color: #5f6368;">Chọn bài thoại đã lưu:</label>
-    <select id="savedAudioSelect" style="width: 100%; padding: 8px; border: 1px solid #dadce0; border-radius: 8px; font-size: 14px; margin-top: 4px;">
-      <option value="">-- Chọn bài đọc --</option>
-    </select>
+    <div style="display: flex; gap: 8px; margin-top: 4px;">
+      <select id="savedAudioSelect" style="flex: 1; padding: 8px; border: 1px solid #dadce0; border-radius: 8px; font-size: 14px;">
+        <option value="">-- Đang tải danh sách... --</option>
+      </select>
+      <button id="btnDeleteAudio" style="background: #fce8e6; color: #d93025; border: 1px solid #fad2cf; padding: 8px 12px; border-radius: 8px; font-weight: bold; cursor: pointer;">Xóa</button>
+    </div>
   </div>
 
-  <!-- 2. Ô nhập nội dung và Link MP3 -->
+  <!-- 2. Ô nhập thông tin -->
   <div style="margin-bottom: 10px;">
     <label style="font-size: 13px; font-weight: 600; color: #5f6368;">Tên / Nội dung câu thoại:</label>
-    <textarea id="repeatText" style="width: 100%; height: 50px; border: 1px solid #dadce0; border-radius: 8px; padding: 8px; box-sizing: border-box;" placeholder="Nhập nội dung..."></textarea>
+    <textarea id="repeatText" style="width: 100%; height: 50px; border: 1px solid #dadce0; border-radius: 8px; padding: 8px; box-sizing: border-box;" placeholder="Nhập nội dung câu thoại..."></textarea>
   </div>
 
   <div style="margin-bottom: 12px;">
@@ -150,9 +153,9 @@
     <input type="url" id="customAudioUrl" style="width: 100%; padding: 8px; border: 1px solid #dadce0; border-radius: 8px; box-sizing: border-box;" placeholder="https://res.cloudinary.com/.../audio.mp3">
   </div>
 
-  <!-- Nút Lưu bài đọc mới -->
-  <button id="btnSaveAudio" style="width: 100%; background: #34a853; color: white; border: none; padding: 8px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-bottom: 16px;">
-    💾 Lưu bài này vào danh sách
+  <!-- Nút Lưu bài lên Firebase -->
+  <button id="btnSaveAudio" style="width: 100%; background: #34a853; color: white; border: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 16px;">
+    ☁️ Lưu bài đọc lên Cloud (Firebase)
   </button>
 
   <!-- 3. Tùy chọn Hẹn giờ & Khoảng nghỉ -->

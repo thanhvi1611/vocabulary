@@ -821,16 +821,22 @@ function speakSpeechSynthesis(text) {
   }
 }
  (function() {
+  // CẤU HÌNH FIREBASE (Thầy thay bằng URL Database của thầy)
+  const FIREBASE_DB_URL = "https://tu-vung-extension-default-rtdb.firebaseio.com"; 
+  const USER_CODE = "default_user"; // Hoặc mã định danh lớp học / tài khoản của thầy
+
   let isPlaying = false;
   let audioPlayer = new Audio();
   let loopTimeout = null;
   let countdownInterval = null;
   let remainingSeconds = 0;
+  let currentFirebaseData = {}; // Lưu giữ danh sách bài đọc từ Firebase
 
   const repeatText = document.getElementById('repeatText');
   const customAudioUrl = document.getElementById('customAudioUrl');
   const savedAudioSelect = document.getElementById('savedAudioSelect');
   const btnSaveAudio = document.getElementById('btnSaveAudio');
+  const btnDeleteAudio = document.getElementById('btnDeleteAudio');
   
   const pauseInterval = document.getElementById('pauseInterval');
   const timerSelect = document.getElementById('timerSelect');
@@ -839,60 +845,101 @@ function speakSpeechSynthesis(text) {
   const btnStart = document.getElementById('btnStartRepeat');
   const btnStop = document.getElementById('btnStopRepeat');
 
-  // Key để lưu dữ liệu trong bộ nhớ máy
-  const STORAGE_KEY = 'MY_SAVED_AUDIO_LIST';
+  // --- A. TẢI & ĐỒNG BỘ DỮ LIỆU TỪ FIREBASE ---
 
-  // --- A. QUẢN LÝ DANH SÁCH BÀI LƯU ---
+  // 1. Tải danh sách bài đọc từ Firebase
+  async function loadAudioListFromFirebase() {
+    try {
+      savedAudioSelect.innerHTML = '<option value="">-- Đang tải... --</option>';
+      const res = await fetch(`${FIREBASE_DB_URL}/audio_lessons/${USER_CODE}.json`);
+      const data = await res.json();
+      
+      currentFirebaseData = data || {};
+      savedAudioSelect.innerHTML = '<option value="">-- Chọn bài đọc đã lưu --</option>';
 
-  // 1. Tải danh sách bài đọc đã lưu ra menu
-  function loadSavedAudioList() {
-    const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    savedAudioSelect.innerHTML = '<option value="">-- Chọn bài đọc đã lưu --</option>';
-    
-    list.forEach((item, index) => {
-      const option = document.createElement('option');
-      option.value = index;
-      option.textContent = item.title;
-      savedAudioSelect.appendChild(option);
-    });
+      Object.keys(currentFirebaseData).forEach(key => {
+        const item = currentFirebaseData[key];
+        const option = document.createElement('option');
+        option.value = key;
+        option.textContent = item.title;
+        savedAudioSelect.appendChild(option);
+      });
+    } catch (err) {
+      console.error("Lỗi kết nối Firebase:", err);
+      savedAudioSelect.innerHTML = '<option value="">-- Lỗi tải dữ liệu --</option>';
+    }
   }
 
-  // 2. Khi chọn một bài từ danh sách thả xuống
+  // 2. Chọn bài từ menu thả xuống
   savedAudioSelect.addEventListener('change', (e) => {
-    const index = e.target.value;
-    if (index !== '') {
-      const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      const selectedItem = list[index];
-      if (selectedItem) {
-        repeatText.value = selectedItem.title;
-        customAudioUrl.value = selectedItem.url;
-      }
+    const key = e.target.value;
+    if (key && currentFirebaseData[key]) {
+      repeatText.value = currentFirebaseData[key].title || '';
+      customAudioUrl.value = currentFirebaseData[key].url || '';
     }
   });
 
-  // 3. Bấm nút "Lưu bài này"
-  btnSaveAudio.addEventListener('click', () => {
+  // 3. Thêm bài mới lên Firebase (POST)
+  btnSaveAudio.addEventListener('click', async () => {
     const title = repeatText.value.trim();
     const url = customAudioUrl.value.trim();
 
     if (!title || !url) {
-      alert('Thầy vui lòng nhập đủ Nội dung và Link MP3 trước khi lưu!');
+      alert('Thầy vui lòng nhập đủ Nội dung và Link MP3!');
       return;
     }
 
-    const list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    list.push({ title, url });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    btnSaveAudio.disabled = true;
+    btnSaveAudio.textContent = '⏳ Đang lưu...';
 
-    alert('✅ Đã lưu bài đọc vào danh sách!');
-    loadSavedAudioList();
-    savedAudioSelect.value = list.length - 1; // Chọn ngay bài vừa lưu
+    try {
+      await fetch(`${FIREBASE_DB_URL}/audio_lessons/${USER_CODE}.json`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title,
+          url: url,
+          createdAt: Date.now()
+        })
+      });
+
+      alert('✅ Đã đồng bộ bài đọc lên Firebase!');
+      await loadAudioListFromFirebase();
+    } catch (err) {
+      alert('❌ Có lỗi xảy ra khi lưu!');
+    } finally {
+      btnSaveAudio.disabled = false;
+      btnSaveAudio.textContent = '☁️ Lưu bài đọc lên Cloud (Firebase)';
+    }
   });
 
-  // Tải danh sách khi vừa mở ứng dụng
-  loadSavedAudioList();
+  // 4. Xóa bài khỏi Firebase (DELETE)
+  btnDeleteAudio.addEventListener('click', async () => {
+    const key = savedAudioSelect.value;
+    if (!key) {
+      alert('Thầy chọn một bài để xóa!');
+      return;
+    }
 
-  // --- B. QUẢN LÝ PHÁT ÂM THANH & HẸN GIỜ ---
+    if (confirm('Thầy có chắc chắn muốn xóa bài đọc này?')) {
+      try {
+        await fetch(`${FIREBASE_DB_URL}/audio_lessons/${USER_CODE}/${key}.json`, {
+          method: 'DELETE'
+        });
+        
+        repeatText.value = '';
+        customAudioUrl.value = '';
+        await loadAudioListFromFirebase();
+      } catch (err) {
+        alert('❌ Lỗi khi xóa dữ liệu!');
+      }
+    }
+  });
+
+  // Tải danh sách ngay khi ứng dụng khởi động
+  loadAudioListFromFirebase();
+
+  // --- B. QUẢN LÝ PHÁT ÂM THANH & CHẠY NGẦM ---
 
   function playAudio() {
     if (!isPlaying) return;
@@ -905,7 +952,7 @@ function speakSpeechSynthesis(text) {
 
       if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
-          title: textContent || 'Luyện nghe MP3',
+          title: textContent || 'Bài luyện đọc MP3',
           artist: 'Đi cùng con'
         });
         navigator.mediaSession.setActionHandler('pause', stopLoop);
