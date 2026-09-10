@@ -837,19 +837,42 @@ function speakSpeechSynthesis(text) {
 
     // 1. Hàm phát một câu từ Google TTS
    // 1. Hàm phát một câu thoại bằng Web Speech API chuẩn trình duyệt
+// Hàm chọn giọng đọc chất lượng cao (Natural / Google / Premium)
+function getBestEnglishVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) return null;
+
+  // Danh sách từ khóa ưu tiên giọng tự nhiên
+  const preferredKeywords = ['Natural', 'Google', 'Premium', 'Enhanced', 'Samantha', 'Karen', 'Daniel'];
+
+  // 1. Tìm giọng tiếng Anh có chứa các từ khóa giọng hay
+  for (const key of preferredKeywords) {
+    const matchedVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes(key));
+    if (matchedVoice) return matchedVoice;
+  }
+
+  // 2. Nếu không thấy, lấy giọng en-US hoặc en-GB bất kỳ
+  return voices.find(v => v.lang === 'en-US' || v.lang === 'en-GB') || voices.find(v => v.lang.startsWith('en'));
+}
+
+// Hàm phát câu thoại với giọng nâng cấp
 function playTTS(text) {
   if (!isPlaying) return;
 
-  // Kiểm tra nếu trình duyệt hỗ trợ SpeechSynthesis
   if ('speechSynthesis' in window) {
-    // Hủy các câu đọc dở trước đó (nếu có)
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US'; // Ngôn ngữ tiếng Anh
-    utterance.rate = 0.9;     // Tốc độ đọc (0.9 cho tự nhiên)
+    utterance.lang = 'en-US';
+    utterance.rate = 0.88; // Tốc độ vừa phải giúp giọng truyền cảm hơn
+    utterance.pitch = 1.0; // Tông giọng tự nhiên
 
-    // Khi đọc xong một lượt -> Tự động gọi lượt tiếp theo
+    // Cài đặt giọng đọc tốt nhất tìm được
+    const bestVoice = getBestEnglishVoice();
+    if (bestVoice) {
+      utterance.voice = bestVoice;
+    }
+
     utterance.onend = () => {
       if (isPlaying) {
         const pauseTime = parseInt(pauseInterval.value, 10) * 1000;
@@ -859,12 +882,10 @@ function playTTS(text) {
       }
     };
 
-    // Bắt lỗi nếu hệ thống TTS của thiết bị gặp sự cố
     utterance.onerror = (event) => {
       console.warn("Lỗi đọc câu thoại:", event);
     };
 
-    // Kích hoạt Media Session để tạo trình điều khiển trên màn hình khóa
     if ('mediaSession' in navigator) {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: 'Luyện đọc lặp lại',
@@ -875,13 +896,16 @@ function playTTS(text) {
       navigator.mediaSession.setActionHandler('stop', stopLoop);
     }
 
-    // Thực hiện đọc
     window.speechSynthesis.speak(utterance);
-  } else {
-    alert("Trình duyệt của thầy không hỗ trợ tính năng đọc giọng nói (SpeechSynthesis).");
   }
 }
 
+// Bắt sự kiện tải danh sách giọng đọc của trình duyệt (Bắt buộc cho Chrome/Edge)
+if ('speechSynthesis' in window) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    getBestEnglishVoice();
+  };
+}
     // 2. Sự kiện khi đọc xong một lượt -> Nghỉ rồi đọc tiếp
     audioPlayer.onended = () => {
       if (isPlaying) {
@@ -947,6 +971,7 @@ function playTTS(text) {
 
     // 5. Dừng phát
     function stopLoop() {
+      window.speechSynthesis.cancel();
       isPlaying = false;
       
       if (audioPlayer) {
