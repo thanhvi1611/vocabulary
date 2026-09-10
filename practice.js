@@ -619,7 +619,24 @@ document.addEventListener('DOMContentLoaded', () => {
       dayListContainer.appendChild(card);
     });
   }
+const tabListenBtn = document.getElementById('tab-listen-btn');
+const listenView = document.getElementById('listen-view');
 
+// Trong hàm chuyển tab của thầy, thêm xử lý cho Tab Luyện Nghe:
+tabListenBtn.addEventListener('click', () => {
+  // Ẩn tất cả các view
+  addView.style.display = 'none';
+  practiceView.style.display = 'none';
+  manageView.style.display = 'none';
+  ipaView.style.display = 'none';
+  
+  // Hiển thị view Luyện nghe
+  listenView.style.display = 'block';
+
+  // Cập nhật class active cho các nút tab
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  tabListenBtn.classList.add('active');
+});
   // Bắt sự kiện trên container danh sách bài học bằng Event Delegation
   if (dayListContainer) {
     dayListContainer.addEventListener('click', (e) => {

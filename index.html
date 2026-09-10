@@ -9,7 +9,7 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2563eb">
 
-  <!-- Inter / Plus Jakarta Sans Typography -->
+  <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -106,7 +106,7 @@
     /* Navigation Tabs */
     .nav-tabs {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
       gap: 8px;
       margin-bottom: 20px;
     }
@@ -114,7 +114,7 @@
     .tab-btn {
       background: var(--surface);
       border: 1.5px solid var(--border);
-      padding: 10px 14px;
+      padding: 10px 12px;
       border-radius: 10px;
       cursor: pointer;
       font-weight: 700;
@@ -312,16 +312,6 @@
     .btn-sm { padding: 6px 12px; font-size: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; }
     .btn-play-sm { background: var(--success); color: white; }
 
-    /* KHU VỰC LUYỆN ĐỌC LẶP LẠI (REPEAT SPEECH) */
-    .practice-card {
-      background: var(--surface);
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: var(--shadow-md);
-      border: 1px solid var(--border);
-      margin-top: 20px;
-    }
-
     /* FLASHCARD IPA 3D */
     .flashcard-wrapper { max-width: 360px; margin: 0 auto; perspective: 1000px; }
     .flashcard-card {
@@ -406,6 +396,7 @@
         🎯 Luyện Tập
         <span id="due-count-badge" class="badge-due" style="display: none;">0</span>
       </button>
+      <button id="tab-listen-btn" class="tab-btn">🎧 Luyện Nghe</button>
       <button id="tab-manage-btn" class="tab-btn">📅 Bài Học</button>
       <button id="tab-ipa-btn" class="tab-btn">🎴 Flashcard IPA</button>
     </div>
@@ -467,77 +458,77 @@
         <div id="complete-detail" style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;"></div>
         <button id="restart-btn" class="btn-action">🔄 Học lại lượt này</button>
       </div>
+    </div>
 
-      <!-- KHU VỰC LUYỆN ĐỌC LẶP LẠI (REPEAT SPEECH) -->
-      <div class="practice-card">
-        <h3 style="margin-top: 0; color: var(--primary); font-size: 18px; margin-bottom: 16px;">🎧 Luyện Nghe & Đọc Lặp Lại (Firebase)</h3>
+    <!-- TAB 3: LUYỆN NGHE & ĐỌC LẶP LẠI (TÁCH RIÊNG TAB MỚI) -->
+    <div id="listen-view" class="card" style="display: none;">
+      <h3 style="margin-top: 0; color: var(--primary); font-size: 20px; margin-bottom: 16px;">🎧 Luyện Nghe & Đọc Lặp Lại (Firebase)</h3>
 
-        <!-- 1. Danh sách bài đọc từ Firebase -->
-        <div style="margin-bottom: 14px;">
-          <label style="font-size: 13px; font-weight: 700; color: var(--text-muted);">Chọn bài thoại đã lưu:</label>
-          <div style="display: flex; gap: 8px; margin-top: 6px;">
-            <select id="savedAudioSelect" style="flex: 1;">
-              <option value="">-- Đang tải danh sách... --</option>
-            </select>
-            <button id="btnDeleteAudio" style="background: var(--danger-light); color: var(--danger); border: 1px solid #fca5a5; padding: 8px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; white-space: nowrap;">Xóa</button>
-          </div>
+      <!-- 1. Danh sách bài đọc từ Firebase -->
+      <div style="margin-bottom: 14px;">
+        <label style="font-size: 13px; font-weight: 700; color: var(--text-muted);">Chọn bài thoại đã lưu:</label>
+        <div style="display: flex; gap: 8px; margin-top: 6px;">
+          <select id="savedAudioSelect" style="flex: 1;">
+            <option value="">-- Đang tải danh sách... --</option>
+          </select>
+          <button id="btnDeleteAudio" style="background: var(--danger-light); color: var(--danger); border: 1px solid #fca5a5; padding: 8px 14px; border-radius: 8px; font-weight: 700; cursor: pointer; white-space: nowrap;">Xóa</button>
         </div>
+      </div>
 
-        <!-- 2. Ô nhập thông tin -->
-        <div style="margin-bottom: 14px;">
-          <label style="font-size: 13px; font-weight: 700; color: var(--text-muted);">Tên / Nội dung câu thoại:</label>
-          <textarea id="repeatText" style="margin-top: 6px; height: 60px; resize: vertical;" placeholder="Nhập nội dung câu thoại..."></textarea>
+      <!-- 2. Ô nhập thông tin -->
+      <div style="margin-bottom: 14px;">
+        <label style="font-size: 13px; font-weight: 700; color: var(--text-muted);">Tên / Nội dung câu thoại:</label>
+        <textarea id="repeatText" style="margin-top: 6px; height: 60px; resize: vertical;" placeholder="Nhập nội dung câu thoại..."></textarea>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="font-size: 13px; font-weight: 700; color: var(--primary);">Đường dẫn Link MP3:</label>
+        <input type="url" id="customAudioUrl" style="margin-top: 6px;" placeholder="https://res.cloudinary.com/.../audio.mp3">
+      </div>
+
+      <!-- Nút Lưu bài lên Firebase -->
+      <button id="btnSaveAudio" style="width: 100%; background: var(--success); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">
+        ☁️ Lưu bài đọc lên Cloud (Firebase)
+      </button>
+
+      <!-- 3. Tùy chọn Hẹn giờ & Khoảng nghỉ -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <div>
+          <label style="font-size: 12px; font-weight: 700; color: var(--text-muted);">Nghỉ giữa các lần:</label>
+          <select id="pauseInterval" style="margin-top: 4px;">
+            <option value="1">1 giây</option>
+            <option value="2" selected>2 giây</option>
+            <option value="3">3 giây</option>
+          </select>
         </div>
-
-        <div style="margin-bottom: 16px;">
-          <label style="font-size: 13px; font-weight: 700; color: var(--primary);">Đường dẫn Link MP3:</label>
-          <input type="url" id="customAudioUrl" style="margin-top: 6px;" placeholder="https://res.cloudinary.com/.../audio.mp3">
+        <div>
+          <label style="font-size: 12px; font-weight: 700; color: var(--text-muted);">Hẹn giờ tự dừng:</label>
+          <select id="timerSelect" style="margin-top: 4px;">
+            <option value="5">5 phút</option>
+            <option value="10" selected>10 phút</option>
+            <option value="0">Không giới hạn</option>
+          </select>
         </div>
+      </div>
 
-        <!-- Nút Lưu bài lên Firebase -->
-        <button id="btnSaveAudio" style="width: 100%; background: var(--success); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);">
-          ☁️ Lưu bài đọc lên Cloud (Firebase)
-        </button>
+      <div id="timerStatus" style="display: none; text-align: center; margin-bottom: 16px; font-weight: 700; color: var(--danger); background: var(--danger-light); padding: 8px; border-radius: 8px; font-size: 13px; border: 1px solid #fca5a5;">
+        ⏱️ Thời gian còn lại: <span id="countdownDisplay">10:00</span>
+      </div>
 
-        <!-- 3. Tùy chọn Hẹn giờ & Khoảng nghỉ -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
-          <div>
-            <label style="font-size: 12px; font-weight: 700; color: var(--text-muted);">Nghỉ giữa các lần:</label>
-            <select id="pauseInterval" style="margin-top: 4px;">
-              <option value="1">1 giây</option>
-              <option value="2" selected>2 giây</option>
-              <option value="3">3 giây</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size: 12px; font-weight: 700; color: var(--text-muted);">Hẹn giờ tự dừng:</label>
-            <select id="timerSelect" style="margin-top: 4px;">
-              <option value="5">5 phút</option>
-              <option value="10" selected>10 phút</option>
-              <option value="0">Không giới hạn</option>
-            </select>
-          </div>
-        </div>
-
-        <div id="timerStatus" style="display: none; text-align: center; margin-bottom: 16px; font-weight: 700; color: var(--danger); background: var(--danger-light); padding: 8px; border-radius: 8px; font-size: 13px; border: 1px solid #fca5a5;">
-          ⏱️ Thời gian còn lại: <span id="countdownDisplay">10:00</span>
-        </div>
-
-        <!-- Nút Điều khiển -->
-        <div style="display: flex; gap: 12px;">
-          <button id="btnStartRepeat" style="flex: 1; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer;">▶ Bắt đầu phát</button>
-          <button id="btnStopRepeat" disabled style="flex: 1; background: var(--border); color: var(--text-muted); border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer;">⏹ Dừng lại</button>
-        </div>
+      <!-- Nút Điều khiển -->
+      <div style="display: flex; gap: 12px;">
+        <button id="btnStartRepeat" style="flex: 1; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer;">▶ Bắt đầu phát</button>
+        <button id="btnStopRepeat" disabled style="flex: 1; background: var(--border); color: var(--text-muted); border: none; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer;">⏹ Dừng lại</button>
       </div>
     </div>
 
-    <!-- TAB 3: DANH SÁCH BÀI HỌC -->
+    <!-- TAB 4: DANH SÁCH BÀI HỌC -->
     <div id="manage-view" class="card" style="display: none;">
       <h3 style="margin-top: 0; color: var(--primary); font-size: 20px; margin-bottom: 16px;">Danh Sách Bài Học Nhóm Theo Ngày</h3>
       <div id="day-list-container"></div>
     </div>
 
-    <!-- TAB 4: FLASHCARD 44 ÂM IPA -->
+    <!-- TAB 5: FLASHCARD 44 ÂM IPA -->
     <div id="ipa-view" class="card" style="display: none; text-align: center;">
       <h3 style="margin-top: 0; color: var(--primary); font-size: 20px; margin-bottom: 20px;">🎴 Flashcard 44 Âm IPA Chuẩn</h3>
       
