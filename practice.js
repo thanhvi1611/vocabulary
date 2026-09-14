@@ -531,6 +531,7 @@ tabIpaBtn.addEventListener('click', () => {
     
     if (!userTyping) return;
 
+    // Nếu đã gõ đúng trước đó, nhấn Enter sẽ chuyển sang từ tiếp theo
     if (isAnswered) {
       currentIndex++;
       renderCurrentQuestion();
@@ -540,6 +541,7 @@ tabIpaBtn.addEventListener('click', () => {
     const isCorrect = (userTyping === targetWord);
 
     if (isCorrect) {
+      // ĐÃ GÕ ĐÚNG: Đánh dấu hoàn thành để Enter lần sau nhảy từ
       isAnswered = true;
       const updatedItem = calculateSRS(item, true);
       const fullList = getStoredVocab();
@@ -559,6 +561,7 @@ tabIpaBtn.addEventListener('click', () => {
       updateDueCountBadge();
       speakWord(item.word);
     } else {
+      // GÕ SAI: Không đổi isAnswered = true! Bắt buộc phải gõ lại cho tới khi đúng.
       const updatedItem = calculateSRS(item, false);
       const fullList = getStoredVocab();
       const targetIndex = fullList.findIndex(v => v.word.toLowerCase() === item.word.toLowerCase());
@@ -570,33 +573,16 @@ tabIpaBtn.addEventListener('click', () => {
 
       if (typeInput) {
         typeInput.className = 'quiz-input incorrect';
-        typeInput.select();
+        typeInput.select(); // Bôi đen toàn bộ từ sai để thầy sửa/gõ lại nhanh
       }
       if (hintDiv) {
-        hintDiv.innerHTML = `❌ Chưa đúng! Đáp án đúng là: <b style="color:#d93025; font-size: 16px;">${item.word}</b>. Hãy gõ lại cho đúng!`;
+        hintDiv.innerHTML = `❌ Chưa đúng! Gõ lại từ: <b style="color:#d93025; font-size: 16px;">${item.word}</b>`;
         hintDiv.style.color = '#ea4335';
       }
       wrongCount++;
       speakWord(item.word);
     }
   }
-
-  if (typeInput) {
-    typeInput.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && e.code === 'Space') {
-        e.preventDefault();
-        const currentItem = currentSessionList[currentIndex];
-        if (currentItem) speakWord(currentItem.word);
-        return;
-      }
-
-      if (e.key === 'Enter') checkAnswer();
-    });
-  }
-
-  if (speakBtn) speakBtn.addEventListener('click', () => speakWord(currentSessionList[currentIndex]?.word));
-  if (restartBtn) restartBtn.addEventListener('click', () => loadVocabData(currentSessionList));
-
   // --- QUẢN LÝ DANH SÁCH BÀI HỌC (EVENT DELEGATION TỐI ƯU HIỆU NĂNG) ---
   function renderDayList() {
     const list = getStoredVocab();
