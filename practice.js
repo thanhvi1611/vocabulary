@@ -520,6 +520,7 @@ tabIpaBtn.addEventListener('click', () => {
   }
 
   // --- CHECK ANSWER & PHÍM TẮT ---
+ // --- CHECK ANSWER & PHÍM TẮT ---
   function checkAnswer() {
     if (!currentSessionList || currentSessionList.length === 0 || !currentSessionList[currentIndex]) return;
 
@@ -583,6 +584,23 @@ tabIpaBtn.addEventListener('click', () => {
       speakWord(item.word);
     }
   }
+
+  if (typeInput) {
+    typeInput.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.code === 'Space') {
+        e.preventDefault();
+        const currentItem = currentSessionList[currentIndex];
+        if (currentItem) speakWord(currentItem.word);
+        return;
+      }
+
+      if (e.key === 'Enter') checkAnswer();
+    });
+  }
+
+  if (speakBtn) speakBtn.addEventListener('click', () => speakWord(currentSessionList[currentIndex]?.word));
+  if (restartBtn) restartBtn.addEventListener('click', () => loadVocabData(currentSessionList));
+
   // --- QUẢN LÝ DANH SÁCH BÀI HỌC (EVENT DELEGATION TỐI ƯU HIỆU NĂNG) ---
   function renderDayList() {
     const list = getStoredVocab();
